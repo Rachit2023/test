@@ -304,6 +304,7 @@ tr.remrow td{background:var(--g6)!important;font-size:10px;color:var(--g2);paddi
 .hp i{position:absolute;top:0;bottom:0;display:block}
 .hp .f1{background:var(--g2)}
 .hp .f2{background:var(--red)}
+.hp .f3{background:var(--g3)}
 .hp .mk{position:absolute;top:-4px;bottom:-4px;width:0;border-left:2px dashed var(--ink);z-index:3}
 .hp .mklab{position:absolute;top:-15px;font-size:9px;font-weight:700;white-space:nowrap;
   transform:translateX(-50%);color:var(--ink)}
@@ -436,17 +437,24 @@ function hprog(o){
     <div class="hplab"><span>${o.n1} <span class="na">n/c</span></span>
       <span>${o.n4} <span class="na">n/c</span></span>
       <span>${o.n5} <span class="na">n/c</span></span></div></div>`;
+  const mid=o.mid;
+  const body = (mid!==undefined)
+    ? `<i class="f1" style="left:0;width:${f}%"${tip(o.n1+': '+X)}></i>
+       <i class="f3" style="left:${f}%;width:${mid-f}%"${tip(o.nMid+': '+X)}></i>
+       <i style="left:${mid}%;width:${100-mid}%;background:var(--g5)"${tip(o.n3+': '+X)}></i>`
+    : `<i class="f1" style="left:0;width:${f}%"${tip(o.n1+': '+X)}></i>
+       ${sf>0?`<i class="f2" style="left:${f}%;width:${sf}%"${tip(o.n2+': '+X)}></i>`:''}
+       <i style="left:${t}%;width:${100-t}%;background:var(--g5)"${tip(o.n3+': '+X)}></i>`;
+  const midLab = (mid!==undefined) ? `<span>${o.nMid} <b>${X}</b></span>`
+                                   : `<span>${o.n2} <b>${X}</b></span>`;
   return `<div class="hpwrap">
     <div class="hphd"><b>${o.label}</b><span>${o.unit||''}</span></div>
-    <div class="hp">
-      <i class="f1" style="left:0;width:${f}%"${tip(o.n1+': '+X)}></i>
-      ${sf>0?`<i class="f2" style="left:${f}%;width:${sf}%"${tip(o.n2+': '+X)}></i>`:''}
-      <i style="left:${t}%;width:${100-t}%;background:var(--g5)"${tip(o.n3+': '+X)}></i>
+    <div class="hp">${body}
       <span class="mk" style="left:${t}%"></span>
       <span class="mklab" style="left:${t}%">${o.n4} ${X}</span>
     </div>
     <div class="hplab"><span>${o.n1} <b>${X}</b></span>
-      <span>${o.n2} <b>${X}</b></span>
+      ${midLab}
       <span>${o.n5} <b>${X}</b></span></div></div>`;
 }
 
@@ -762,8 +770,12 @@ function rComm(){
        ['<span class="pn">Total</span>',X,X,X,X,X]]);
   st=st.replace(/<tr><td class="">@@S1@@<\/td>(<td class="c"><\/td>){5}<\/tr>/,s1.row);
   const obS=card('Build to sell','',
-    hprog({label:'Area position',unit:'sq ft',nc:1,
-      n1:'Sold',n4:'Target',n5:'Total'})+st,
+    hprog({label:'Area position',unit:'sq ft',fill:46,mid:68,target:62,
+      n1:'Sold',nMid:'Prospects',n3:'Unsold, no prospect',n4:'Target',n5:'Total'})+
+    `<div class="hpleg">
+       <span><i class="sw" style="background:var(--g2)"></i>sold</span>
+       <span><i class="sw" style="background:var(--g3)"></i>prospects</span>
+       <span><i class="sw" style="background:var(--g5)"></i>unsold, no prospect</span></div>`+st,
     sel(['3 months','6 months','YTD','Total'],'btsper',BTSPER));
 
   const rr=[remLead('Party 1',6),remLead('Party 2',6),remLead('Party 3',6)];
