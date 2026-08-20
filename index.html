@@ -226,7 +226,8 @@ tfoot td{font-weight:700;background:var(--g6)!important}
 .rtog::before{content:"\25b8";color:var(--red);font-size:9px;transition:none}
 .rtog[aria-expanded="true"]::before{content:"\25be"}
 .rbody{font-size:10px;color:var(--g2);background:var(--g6);border:1px solid var(--line);
-  padding:4px 9px;margin-top:3px}
+  padding:4px 10px;margin-top:5px;min-width:280px}
+.rbody[hidden]{display:none}
 tr.remrow td{background:var(--g6)!important;font-size:10px;color:var(--g2);padding:5px 9px}
 /* scroll only inside a tile if a table is genuinely long */
 
@@ -351,6 +352,17 @@ tr.remrow td{background:var(--g6)!important;font-size:10px;color:var(--g2);paddi
   padding:2px 9px;cursor:pointer}
 tr.clickrow{cursor:pointer}
 tr.clickrow:hover td{background:#F2F2F2!important}
+
+/* ───── horizontal per-project bars ───── */
+.hrow{display:grid;grid-template-columns:96px 1fr 62px;gap:8px;align-items:center;margin-bottom:7px}
+.hrow .hnm{font-size:10.5px;font-weight:700}
+.hrow .hsub{font-size:9px;color:var(--g2);font-weight:400;display:block}
+.htrack{position:relative;height:14px;background:var(--g5);border:1px solid var(--g4)}
+.htrack i{position:absolute;top:0;bottom:0;display:block}
+.htrack .c1{left:0;background:var(--g3)}
+.htrack .c2{background:var(--red)}
+.hval{font-size:9.5px;font-weight:700;text-align:right}
+.hval.red{color:var(--red)}
 </style></head>
 <body><div class="top"></div><div class="wrap">
   <div class="hdr"><h1>Sales, Marketing &amp; CRM</h1>
@@ -424,6 +436,15 @@ function sel(items,name,active){
     `</select></span>`;
 }
 /* a row-level remark: arrow toggles the body beneath */
+let RKID=0;
+function remLeadInline(label){
+  RKID++;
+  return `<button class="rtog" data-rk="rkin${RKID}" aria-expanded="false"
+      title="Remarks" aria-label="Remarks"></button><span class="pn">${label}</span>`;
+}
+function remBody(txt){
+  return `<div class="rbody" id="rkin${RKID}" hidden>${txt||'one line from the project owner'}</div>`;
+}
 function remark(txt){
   const id='rk'+(++RID);
   return `<button class="rtog" data-rk="${id}" aria-expanded="false" title="Remarks"
@@ -565,9 +586,9 @@ function rOverview(){
         ${tip(STG[i]+(i<=p.cur?': done':': not started'))}>${i<=p.cur?'\u2713':'\u2013'}</span>`).join('');
     const soldPct=[74,52,38][pi], hoPct=[62,0,0][pi];
     return `<tr class="strow" data-dd="${p.id}">
-      <td><span class="rlead">${remark('one line from the project owner')}
-        <span class="pn">${p.name}</span></span><br>
-        <span class="chip">${p.city}</span><span class="chip">${p.biz}</span></td>
+      <td><span class="rlead">${remLeadInline(p.name)}</span>
+        <div><span class="chip">${p.city}</span><span class="chip">${p.biz}</span></div>
+        ${remBody()}</td>
       <td class="c">${ticks}</td>
       <td><div class="posbar"${tip('Sold '+soldPct+'% of total')}><i style="width:${soldPct}%"></i></div>
         <div class="posnum"><span>total <b>${X}</b></span><span>sold <b>${X}</b></span>
@@ -586,10 +607,8 @@ function rOverview(){
 
   $('#v-ov').innerHTML=ytd+rib+srcMix()+
     card('Project scheduling','',sch,
-      `<span style="display:flex;gap:8px;align-items:center">
-         ${sel(UNITS,'posu',POSUNIT)}${sel(['Overall view'].concat(PROJECTS.map((p,i)=>'Project '+(i+1))),'ovs',OVSCOPE)}</span>`);
+      sel(UNITS,'posu',POSUNIT));
   wireRemarks($('#v-ov'));
-  const os=$('[data-ovs]'); if(os) os.addEventListener('change',()=>{OVSCOPE=+os.value;rOverview();});
   const pu=$('[data-posu]'); if(pu) pu.addEventListener('change',()=>{POSUNIT=+pu.value;rOverview();});
   let lastHit=0, lastId='';
   document.querySelectorAll('[data-dd]').forEach(el=>el.addEventListener('click',()=>{
@@ -741,7 +760,7 @@ function rSales(){
   (SUB==='res'?rResi:rComm)();
 }
 
-let RSCOPE=0, RDRILL=null;
+let RSCOPE=0, RDRILL=null, GVIEW=0;
 const PROJNAMES=['Project 1','Project 2','Project 3'];
 const CONFIGS=[['1 BHK',82],['2 BHK',68],['3 BHK',44],['4 BHK and above',26]];
 
@@ -765,7 +784,7 @@ function rResi(){
       <span><i class="sw" style="background:var(--red)"></i>shortfall to target</span>
       <span><i class="sw" style="background:var(--g5)"></i>not in this period&rsquo;s target</span>
       <span class="na">click any number for the breakdown</span></div>`,
-    sel(['Overall'].concat(PROJNAMES),'rs1',RSCOPE));
+    '');
 
   const mom=card('Month on month, plan vs achieved','',
     ['Apr','May','Jun'].map(m=>`<div class="pv"><span class="pm">${m}</span><div>
@@ -774,7 +793,7 @@ function rResi(){
       </div></div>`).join('')+
     tbl(['','c','c','c'],['Measure','Apr','May','Jun'],
       [['Gross sales',X,X,X],['Cancellations',X,X,X],['<b>Net sales</b>',X,X,X]]),
-    sel(['Overall'].concat(PROJNAMES),'rs2',RSCOPE));
+    '');
 
   const MO=['Jan','Feb','Mar','Apr','May','Jun'];
   const TGT=[92,88,84,80,76,72], MOI=[0.34,0.40,0.48,0.60,0.74,0.90], CH=112;
@@ -827,8 +846,6 @@ function rResi(){
     (RDRILL?`<div class="row">${drillCard()}</div>`:'')+
     `<div class="row h2">${inv}${price}</div>`+`<div class="row">${brk}</div>`;
 
-  document.querySelectorAll('[data-rs1],[data-rs2]').forEach(sl=>sl.addEventListener('change',()=>{
-    RSCOPE=+sl.value; RDRILL=null; rResi();}));
   document.querySelectorAll('[data-metric]').forEach(b=>b.addEventListener('click',()=>{
     /* a project chosen at the top goes straight to configuration */
     RDRILL={metric:b.dataset.metric, row:b.dataset.row,
@@ -930,9 +947,8 @@ function rCRM(){
     ['Collected',[['Residential (vs target)',XP,'% of demand raised'],
                   ['Commercial (vs target)',XP,'% of demand raised']]],
     ['Cash outlook',[['Total Outstanding',RS,'demanded but not received'],
-                     ['At risk',RS,'']]],
-    ['Service',[['NPS/CSAT at handover for CRM',X,'score, 0 to 10 &middot; XX% responded'],
-                ['Complaints open over 30 days',X,'count, of XX open']]]]);
+                     ['&gt; 90 days',RS,'of total outstanding']]],
+    ['Service',[['NPS at handover',X,'score, 0 to 10 &middot; XX% responded']]]]);
 
   const collBar=(fill,dem)=>hprog({label:'Against sales value',unit:'Rs Cr',
       fill:fill,target:dem,n1:'Collected',n2:'Outstanding',n3:'Not yet demanded',
@@ -944,44 +960,49 @@ function rCRM(){
   const ch1=card('Residential collections','cumulative &middot; Rs Cr',collBar(70,78));
   const ch2=card('Commercial build-to-sell collections','cumulative &middot; Rs Cr',collBar(16,42));
 
-  const PJ=[['Project 1','Resi',80,70],['Project 2','Resi',62,43],
-            ['Asset 1','Comm BTS',52,15],['Asset 2','Comm BTS',40,29],['Asset 3','Comm BTS',26,5]];
-  const colchart=card('Demanded and collected, by project','',
-    `<div class="lg2"><span><i class="sw" style="background:var(--g3)"></i>Amount collected</span>
-      <span><i class="sw" style="background:var(--red)"></i>Amount overdue</span></div>`+
-    `<div class="bars" style="height:104px">`+PJ.map(([p,biz,dem,coll])=>{
-      const t=dem, c=coll, o=dem-coll;
-      return `<div class="bcol"><div class="bwr" style="justify-content:center">
-          <div style="width:58%;position:relative">
-            <span class="bvv" style="bottom:${t+4}px;top:auto">out ${X}</span>
-            <div class="bar hi" style="height:${o}px"${tip(p+' overdue: Rs '+X+' Cr')}></div>
-            <div class="bar" style="height:${c}px"${tip(p+' collected: Rs '+X+' Cr')}></div></div></div>
-        <div class="blb"><b>${p}</b><br>${biz} &middot; ${XP} collected</div></div>`;}).join('')+`</div>`,
+  /* demanded vs collected, transposed to horizontal rows */
+  const PJ=[['Project 1','Resi',88,76],['Project 2','Resi',70,48],['Asset 1','Comm BTS',58,17],
+            ['Asset 2','Comm BTS',46,33],['Asset 3','Comm BTS',30,6]];
+  const dc=card('Demanded and collected, by project','',
+    `<div class="lg2"><span><i class="sw" style="background:var(--g3)"></i>collected</span>
+      <span><i class="sw" style="background:var(--red)"></i>outstanding</span></div>`+
+    PJ.map(([p,biz,dem,coll])=>`<div class="hrow">
+        <span class="hnm">${p}<span class="hsub">${biz} &middot; ${XP} collected</span></span>
+        <div class="htrack"${tip(p+' \u2014 demanded Rs '+X+' Cr')}>
+          <i class="c1" style="width:${coll}%"${tip('collected: Rs '+X+' Cr')}></i>
+          <i class="c2" style="left:${coll}%;width:${dem-coll}%"${tip('outstanding: Rs '+X+' Cr')}></i></div>
+        <span class="hval red">out ${X}</span></div>`).join(''),
     btns(['Residential','Comm BTS','Both'],CTOG,'ct'));
 
-  /* month and total span their project rows, so one month reads as one block */
+  /* of what is sold, how much is registered */
+  const RG=[['Project 1',82],['Project 2',56],['Project 3',34],['Portfolio',62]];
+  const reg=card('Registered vs pending, of units sold','registration is the title milestone, not a collection one',
+    `<div class="lg2"><span><i class="sw" style="background:var(--g2)"></i>registered</span>
+      <span><i class="sw" style="background:var(--red)"></i>pending registration</span></div>`+
+    RG.map(([p,f])=>`<div class="hrow">
+        <span class="hnm">${p}<span class="hsub">sold ${X} units</span></span>
+        <div class="htrack"${tip(p+' \u2014 sold '+X+' units')}>
+          <i class="c1" style="width:${f}%;background:var(--g2)"${tip('registered: '+X)}></i>
+          <i class="c2" style="left:${f}%;width:${100-f}%"${tip('pending: '+X)}></i></div>
+        <span class="hval">${XP}</span></div>`).join('')+
+    `<div class="note">Unregistered units are title risk and deferred stamp duty</div>`);
+
   const SCH=[['Jul',[['Project A','Possession offer','&mdash;','High'],
                      ['Project B','Legal gate','<span class="red">legal</span>','Low']]],
              ['Aug',[['Project A','Registration','&mdash;','Medium'],
                      ['Project C','Negotiated plan','&mdash;','High']]],
-             ['Sep',[]],
-             ['Oct',[['Project C','Negotiated plan','&mdash;','High']]],
-             ['Nov',[]],
-             ['Dec',[['Project B','Construction milestone','&mdash;','Medium']]]];
+             ['Sep',[]],['Oct',[['Project C','Negotiated plan','&mdash;','High']]],
+             ['Nov',[]],['Dec',[['Project B','Construction milestone','&mdash;','Medium']]]];
   let body='';
   SCH.forEach(([m,rows])=>{
     if(!rows.length){
-      body+=`<tr><td><b>${m}</b></td><td class="c">0</td><td>&mdash;</td>
-        <td class="c">0</td><td>&mdash;</td><td class="c">&mdash;</td><td class="c">&mdash;</td></tr>`;
-      return;
-    }
+      body+=`<tr><td><b>${m}</b></td><td class="c">0</td><td>&mdash;</td><td class="c">0</td>
+        <td>&mdash;</td><td class="c">&mdash;</td><td class="c">&mdash;</td></tr>`; return; }
     rows.forEach((r,i)=>{
-      body+=`<tr>`+
-        (i===0?`<td rowspan="${rows.length}" class="mcell"><b>${m}</b></td>
-                <td rowspan="${rows.length}" class="c mcell">${X}</td>`:'')+
+      body+=`<tr>`+(i===0?`<td rowspan="${rows.length}" class="mcell"><b>${m}</b></td>
+              <td rowspan="${rows.length}" class="c mcell">${X}</td>`:'')+
         `<td>${r[0]}</td><td class="c">${X}</td><td>${r[1]}</td>
-         <td class="c">${r[2]}</td><td class="c">${r[3]}</td></tr>`;
-    });
+         <td class="c">${r[2]}</td><td class="c">${r[3]}</td></tr>`; });
   });
   const sched=card('Collection schedule, next six months',
     'a month with several collections keeps one month row',
@@ -996,16 +1017,10 @@ function rCRM(){
        <tfoot><tr><td><b>Total</b></td><td class="c"><b>${X}</b></td><td></td>
          <td class="c"><b>${X}</b></td><td></td><td></td><td></td></tr></tfoot></table>`);
 
-  const sla=card('Service SLAs','response and resolution, separately',
-    tbl(['','c','c'],['Measure','Avg value','SLA'],
-      [['Avg first response TAT','XX hrs','under XX hrs'],
-       ['Avg Resolution TAT','XX days','under XX days'],
-       ['Open complaints',X,'&mdash;']]));
-
   const D=[[62,22,16],[40,26,34],[52,24,24],[54,23,23]];
   const NM=['Project A','Project B','Project C','Portfolio'];
   const TOP=['Snags and defects','Documentation','Approval or regulatory','&mdash;'];
-  const nps=card('NPS/CSAT at handover, by project','',
+  const nps=card('NPS at handover, by project','',
     tbl(['','','c','c','n'],['Project','Distribution','Avg','Responses','Top complaint, low scorers'],
       NM.map((n,i)=>[`<span class="pn">${n}</span>`,
         `<div class="dist"><span style="width:${D[i][0]}%;background:var(--g2)"${tip('Promoters: '+XP)}></span>
@@ -1018,8 +1033,8 @@ function rCRM(){
       <span><i class="sw" style="background:var(--red)"></i>detractors</span></div>`);
 
   $('#v-crm').innerHTML=rib+`<div class="row h2">${ch1}${ch2}</div>`+
-    `<div class="row">${colchart}</div>`+
-    `<div class="row h2">${sched}<div style="display:flex;flex-direction:column;gap:7px;min-height:0">${sla}${nps}</div></div>`;
+    `<div class="row h2">${dc}${reg}</div>`+
+    `<div class="row h2">${sched}${nps}</div>`;
   document.querySelectorAll('[data-ct]').forEach(b=>b.addEventListener('click',()=>{CTOG=+b.dataset.ct;rCRM();}));
 }
 
@@ -1029,7 +1044,11 @@ function mountFilters(){
   bar.innerHTML=`<label for="f-asset">Asset type</label>
     ${sel(['All','Residential','Commercial'],'fasset',0).replace('<select','<select id="f-asset"')}
     <label for="f-region">Region</label>
-    ${sel(['All','Chennai','Kolkata'],'fregion',0).replace('<select','<select id="f-region"')}`;
+    ${sel(['All','Chennai','Kolkata'],'fregion',0).replace('<select','<select id="f-region"')}
+    <label for="f-view">View</label>
+    ${sel(['Overall'].concat(PROJNAMES),'fview',GVIEW).replace('<select','<select id="f-view"')}`;
+  const fv=bar.querySelector('#f-view');
+  if(fv) fv.addEventListener('change',()=>{GVIEW=+fv.value; RSCOPE=GVIEW; RDRILL=null;});
   bar.querySelectorAll('select').forEach(s=>s.addEventListener('change',()=>{
     Object.keys(DONE).forEach(k=>delete DONE[k]);
     const cur=[...document.querySelectorAll('.tab')].find(t=>t.getAttribute('aria-selected')==='true');
