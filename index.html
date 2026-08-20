@@ -295,6 +295,24 @@ tr.remrow td{background:var(--g6)!important;font-size:10px;color:var(--g2);paddi
 /* ───── remarks: chevron only ───── */
 .rtog{gap:0;width:14px;justify-content:center}
 .mcell{vertical-align:middle;background:#FAFAFA}
+
+/* ───── horizontal progress bar: filled / shortfall / remainder, with a target marker ───── */
+.hpwrap{margin-bottom:14px}
+.hphd{display:flex;justify-content:space-between;font-size:10px;color:var(--g2);margin-bottom:3px}
+.hphd b{font-size:11px;color:var(--ink)}
+.hp{position:relative;height:24px;background:var(--g5);border:1px solid var(--g4)}
+.hp i{position:absolute;top:0;bottom:0;display:block}
+.hp .f1{background:var(--g2)}
+.hp .f2{background:var(--red)}
+.hp .mk{position:absolute;top:-4px;bottom:-4px;width:0;border-left:2px dashed var(--ink);z-index:3}
+.hp .mklab{position:absolute;top:-15px;font-size:9px;font-weight:700;white-space:nowrap;
+  transform:translateX(-50%);color:var(--ink)}
+.hplab{display:flex;justify-content:space-between;font-size:10px;color:var(--g2);margin-top:4px}
+.hplab b{color:var(--ink)}
+.hpleg{display:flex;gap:16px;font-size:10px;color:var(--g2);margin-top:2px}
+
+.hpnc{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;
+  justify-content:center;font-size:10px;color:var(--g3);font-style:normal}
 </style></head>
 <body><div class="top"></div><div class="wrap">
   <div class="hdr"><h1>Sales, Marketing &amp; CRM</h1>
@@ -409,6 +427,29 @@ function cols4(unit,items,h,mxo){
       <div class="blb">${i.k}</div></div>`;}).join('')+
     `</div>${unit?`<div class="unit">${unit}</div>`:''}`;
 }
+/* one horizontal bar: filled, shortfall to target in red, remainder light */
+function hprog(o){
+  const f=o.fill, t=o.target, sf=Math.max(0,t-f);
+  if(o.nc) return `<div class="hpwrap">
+    <div class="hphd"><b>${o.label}</b><span>${o.unit||''}</span></div>
+    <div class="hp"><span class="hpnc">not captured</span></div>
+    <div class="hplab"><span>${o.n1} <span class="na">n/c</span></span>
+      <span>${o.n4} <span class="na">n/c</span></span>
+      <span>${o.n5} <span class="na">n/c</span></span></div></div>`;
+  return `<div class="hpwrap">
+    <div class="hphd"><b>${o.label}</b><span>${o.unit||''}</span></div>
+    <div class="hp">
+      <i class="f1" style="left:0;width:${f}%"${tip(o.n1+': '+X)}></i>
+      ${sf>0?`<i class="f2" style="left:${f}%;width:${sf}%"${tip(o.n2+': '+X)}></i>`:''}
+      <i style="left:${t}%;width:${100-t}%;background:var(--g5)"${tip(o.n3+': '+X)}></i>
+      <span class="mk" style="left:${t}%"></span>
+      <span class="mklab" style="left:${t}%">${o.n4} ${X}</span>
+    </div>
+    <div class="hplab"><span>${o.n1} <b>${X}</b></span>
+      <span>${o.n2} <b>${X}</b></span>
+      <span>${o.n5} <b>${X}</b></span></div></div>`;
+}
+
 /* one bar, sold dark / unsold light, target tick */
 function hbar(lab,soldPct,tgtPct){
   return `<div style="display:grid;grid-template-columns:54px 1fr;gap:10px;align-items:center;margin-bottom:14px">
@@ -447,7 +488,7 @@ const MSTONE=[[1,0.06,'Launch'],[1,0.94,'Closure']];
 function rOverview(){
   setTimeout(fitView,0);
   const rib=ribbon([
-    ['Marketing &amp; Pre-sales',[['Lead to site visit',XP,'%'],['Visit to sale',XP,'%']]],
+    ['Marketing &amp; Pre-sales',[['Lead to site visit conversion',XP,'%'],['Visit to sale',XP,'%']]],
     ['Sales &mdash; Residential',[['Unsold stock value',RS,''],['Absorption rate',X,'units / month']]],
     ['Sales &mdash; Commercial',[['Rent expiring in 12 months',RS,''],['Area to let',X,'sq ft']]],
     ['CRM',[['CSAT/NPS score','X/XX','score, 0 to 10'],['Collections',XP,'% of demand raised']]]]);
@@ -630,10 +671,15 @@ function rResi(){
                  ['Months of inventory',X,'months, vs Xx target']]]]);
 
   const pos=card('Overall sales position','',
-    hbar('Units',62,74)+hbar('SBA',66,72)+hbar('Value',60,70)+
-    `<div class="lg"><span><i class="sw" style="background:var(--g2)"></i>Sold</span>
-      <span><i class="sw" style="background:#fff;border:1px solid var(--g4)"></i>Target</span>
-      <span><i class="sw" style="background:var(--g5)"></i>Unsold</span></div>`,
+    hprog({label:'Units',unit:'count',fill:62,target:74,
+      n1:'Sold',n2:'Shortfall to target',n3:'Unsold beyond target',n4:'Target',n5:'Total'})+
+    hprog({label:'SBA',unit:'sq ft',fill:66,target:72,
+      n1:'Sold',n2:'Shortfall to target',n3:'Unsold beyond target',n4:'Target',n5:'Total'})+
+    hprog({label:'Value',unit:'Rs Cr',fill:60,target:70,
+      n1:'Sold',n2:'Shortfall to target',n3:'Unsold beyond target',n4:'Target',n5:'Total'})+
+    `<div class="hpleg"><span><i class="sw" style="background:var(--g2)"></i>sold</span>
+      <span><i class="sw" style="background:var(--red)"></i>shortfall to target</span>
+      <span><i class="sw" style="background:var(--g5)"></i>unsold beyond target</span></div>`,
     `<span style="display:flex;gap:6px;align-items:center">${btns(['Sold vs unsold','Registered vs pending'],SPOS,'sp')}
        ${sel(['Overall','Project 1','Project 2','Project 3'],'rs1',0)}</span>`);
 
@@ -704,7 +750,7 @@ function rComm(){
        ['<span class="pn">Total</span>',XP,X,'',X,X,'X.XXx']]);
   lt=lt.replace(/<tr><td class="">@@A1@@<\/td>(<td class="c"><\/td>){6}<\/tr>/,a1.row)
        .replace(/<tr><td class="">@@A2@@<\/td>(<td class="c"><\/td>){6}<\/tr>/,a2.row);
-  const obL=card('Build to lease &mdash; order book','',lt+
+  const obL=card('Build to lease','',lt+
     tbl(['','c'],['Lease tenure','Value'],
       [['WALE (weighted average lease expiry)','XX yrs'],
        ['Rent expiring in 12 months','XX INR Cr']]));
@@ -715,10 +761,9 @@ function rComm(){
       [[s1.lead,X,X,X,X,'0'],['@@S1@@','','','','',''],
        ['<span class="pn">Total</span>',X,X,X,X,X]]);
   st=st.replace(/<tr><td class="">@@S1@@<\/td>(<td class="c"><\/td>){5}<\/tr>/,s1.row);
-  const obS=card('Build to sell &mdash; order book','',
-    cols4('area position &mdash; <span class="na">not captured</span>',
-      [{k:'Total',h:3,v:'n/c'},{k:'Target',h:3,v:'n/c',cls:'tgt'},
-       {k:'Sold',h:3,v:'n/c'},{k:'Unsold',h:3,v:'n/c',cls:'hi'}],66,100)+st,
+  const obS=card('Build to sell','',
+    hprog({label:'Area position',unit:'sq ft',nc:1,
+      n1:'Sold',n4:'Target',n5:'Total'})+st,
     sel(['3 months','6 months','YTD','Total'],'btsper',BTSPER));
 
   const rr=[remLead('Party 1',6),remLead('Party 2',6),remLead('Party 3',6)];
@@ -750,10 +795,15 @@ function rCRM(){
     ['Service',[['NPS/CSAT at handover for CRM',X,'score, 0 to 10 &middot; XX% responded'],
                 ['Complaints open over 30 days',X,'count, of XX open']]]]);
 
-  const B=[{k:'Sales value',h:100},{k:'Demanded',h:78},{k:'Collected',h:70},{k:'Outstanding',h:12,cls:'hi'}];
-  const B2=[{k:'Sales value',h:100},{k:'Demanded',h:42},{k:'Collected',h:16},{k:'Outstanding',h:28,cls:'hi'}];
-  const ch1=card('Residential collections','cumulative &middot; Rs Cr',cols4('',B,96));
-  const ch2=card('Commercial build-to-sell collections','cumulative &middot; Rs Cr',cols4('',B2,96));
+  const collBar=(fill,dem)=>hprog({label:'Against sales value',unit:'Rs Cr',
+      fill:fill,target:dem,n1:'Collected',n2:'Outstanding',n3:'Not yet demanded',
+      n4:'Demanded',n5:'Sales value'})+
+    `<div class="hpleg">
+       <span><i class="sw" style="background:var(--g2)"></i>collected</span>
+       <span><i class="sw" style="background:var(--red)"></i>outstanding</span>
+       <span><i class="sw" style="background:var(--g5)"></i>not yet demanded</span></div>`;
+  const ch1=card('Residential collections','cumulative &middot; Rs Cr',collBar(70,78));
+  const ch2=card('Commercial build-to-sell collections','cumulative &middot; Rs Cr',collBar(16,42));
 
   const PJ=[['Project 1','Resi',80,70],['Project 2','Resi',62,43],
             ['Asset 1','Comm BTS',52,15],['Asset 2','Comm BTS',40,29],['Asset 3','Comm BTS',26,5]];
