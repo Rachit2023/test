@@ -314,6 +314,27 @@ tr.remrow td{background:var(--g6)!important;font-size:10px;color:var(--g2);paddi
 
 .hpnc{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;
   justify-content:center;font-size:10px;color:var(--g3);font-style:normal}
+
+.sub{padding-left:16px;color:var(--g2)}
+
+/* ───── project scheduling: ticks + inline position bars ───── */
+.tick{display:inline-block;width:14px;text-align:center;font-weight:700;font-size:12px;color:var(--grn)}
+.tick.no{color:var(--g4)}
+.posbar{position:relative;height:14px;background:var(--g5);border:1px solid var(--g4)}
+.posbar i{position:absolute;top:0;bottom:0;left:0;background:var(--g2)}
+.posnum{font-size:9.5px;color:var(--g2);margin-top:2px;display:flex;justify-content:space-between}
+.posnum b{color:var(--ink)}
+.greyed{opacity:.45}
+.tbd{font-size:9.5px;font-weight:700;color:var(--red);margin-left:8px}
+/* ───── funnel: svg shape plus a label rail ───── */
+.fgrid{display:grid;grid-template-columns:1fr 210px;gap:12px;align-items:start}
+.frail{display:flex;flex-direction:column}
+.frailrow{display:grid;grid-template-columns:1fr 44px 88px;gap:6px;align-items:center;
+  height:30px;font-size:10.5px}
+.frailrow .fnm{font-weight:700}
+.frailrow .fpc{text-align:right;font-weight:700;font-size:10px}
+.frailrow .fbase{text-align:right;font-size:9.5px;color:var(--g2)}
+.frailbrk{height:14px}
 </style></head>
 <body><div class="top"></div><div class="wrap">
   <div class="hdr"><h1>Sales, Marketing &amp; CRM</h1>
@@ -323,12 +344,14 @@ tr.remrow td{background:var(--g6)!important;font-size:10px;color:var(--g2);paddi
     <button class="tab" role="tab" data-v="mkt" aria-selected="false">Marketing &amp; Pre-sales</button>
     <button class="tab" role="tab" data-v="sal" aria-selected="false">Sales</button>
     <button class="tab" role="tab" data-v="crm" aria-selected="false">CRM</button>
+    <button class="tab" role="tab" data-v="act" aria-selected="false">Action items</button>
     <span class="gfilt" id="fbar"></span>
   </div>
   <div class="view" id="v-ov"  role="tabpanel"></div>
   <div class="view" id="v-mkt" role="tabpanel" hidden></div>
   <div class="view" id="v-sal" role="tabpanel" hidden></div>
   <div class="view" id="v-crm" role="tabpanel" hidden></div>
+  <div class="view" id="v-act" role="tabpanel" hidden></div>
 </div>
 <script>
 /* ════ SMM wireframe — built from the live deck. Placeholders only. ════ */
@@ -489,86 +512,80 @@ function srcMix(){
 }
 
 /* ══════════ 1 · OVERVIEW ══════════ */
-let OPEN=null, OVSCOPE=0;
-/* sample milestones: which stage they sit in, and where within it */
-const MSTONE=[[1,0.06,'Launch'],[1,0.94,'Closure']];
+let OPEN=null, OVSCOPE=0, POSUNIT=0;
+const UNITS=['Units','Value (Rs Cr)','Area (sq ft)'];
+const STG=['Pre-sales','Active sales','Construction'];
 
 function rOverview(){
   setTimeout(fitView,0);
   const rib=ribbon([
     ['Marketing &amp; Pre-sales',[['Lead to site visit conversion',XP,'%'],['Visit to sale',XP,'%']]],
     ['Sales &mdash; Residential',[['Unsold stock value',RS,''],['Absorption rate',X,'units / month']]],
-    ['Sales &mdash; Commercial',[['Rent expiring in 12 months',RS,''],['Area to let',X,'sq ft']]],
+    ['Sales &mdash; Commercial',[['Vacant area',X,'sq ft'],['Expiring in 12 months',X,'sq ft']]],
     ['CRM',[['CSAT/NPS score','X/XX','score, 0 to 10'],['Collections',XP,'% of demand raised']]]]);
 
-  const head=`<div style="display:grid;grid-template-columns:190px 66px 1fr 18px;gap:8px;
-      font-size:9.5px;font-weight:700;color:var(--g2);letter-spacing:.04em;padding-bottom:5px">
-    <span>PROJECT</span><span style="text-align:right">SOLD/LET</span>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">`+
-    STAGES.map(([t])=>`<span class="stgh">${t}</span>`).join('')+
-    `</div><span></span></div>`;
-
-  /* Launch is passed once a project is in Active sales; Closure once it reaches Handover */
-  const passed=(p,i)=>p.cur>=(i===0?1:2);
-  const pillars=p=>`<div style="position:absolute;inset:0;pointer-events:none">`+
-    MSTONE.map(([st,at,lab],i)=>`<span class="pillar${passed(p,i)?' done':''}"
-        style="left:calc(${st*33.333}% + ${at*31}%)"
-        ${tip(lab+': '+(passed(p,i)?'passed':'not yet'))}></span>`).join('')+
-    `</div>`;
-
-  const rows=PROJECTS.map(p=>{
-    const cells=STAGES.map((_,i)=>{
-      const cls=i<p.cur?'done':(i===p.cur?'cur':'');
-      return `<span class="cell ${cls}">${cls==='done'?'done':(cls==='cur'?'current':'&nbsp;')}</span>`;
-    }).join('');
-    return `<div class="strow" data-dd="${p.id}"
-        style="display:grid;grid-template-columns:190px 66px 1fr 18px;gap:8px;align-items:center;padding:5px 0">
-      <div class="pcell"><span class="pname">${p.name}</span>
-        <span class="pmeta">${remark('one line from the project owner')}
-          <span class="chip">${p.city}</span><span class="chip">${p.biz}</span></span></div>
-      <div class="n" style="text-align:right"><b>${XP}</b></div>
-      <div class="stgwrap" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
-        ${cells}${pillars(p)}</div>
-      <div class="exp" id="ex-${p.id}">+</div></div>
-      <div id="dr-${p.id}" hidden></div>`;
-  }).join('');
-
-  const labs=`<div class="mslabs">`+MSTONE.map(([st,at,lab],i)=>
-      `<span style="left:calc(272px + (100% - 298px) * ${(st*33.333+at*31)/100})">${lab}</span>`).join('')+
-    `</div>`+
-    `<div class="lg" style="margin-top:6px">
-       <span><i class="sw" style="background:var(--grn);border-radius:50%"></i>milestone passed</span>
-       <span><i class="sw" style="background:var(--g2);border-radius:50%"></i>not yet</span></div>`;
-
-  const sch=`<div class="schwrap">${head}${rows}${labs}</div>`;
-
-  const act=card('Action items from previous meetings','',
-    tbl(['','','c','c','c',''],['Project','Action','Owner (s)','Timeline','Status','Remarks'],
-      [1,2,3,4,5].map(()=>[X,X,X,X,X,X]),null,'actt'));
-
+  /* YTD: build to sell in value, build to lease in area */
   const ytd=`<div class="ytd">`+
-    [['Build to sell',0.62],['Build to lease',0.78]].map(([t,f])=>`
+    [['Build to sell','Rs '+X+' Cr',0.62],['Build to lease',X+' Mn sq ft',0.78]].map(([t,v,f])=>`
       <div><span class="ytdh">YTD sales target vs achieved &mdash; ${t}</span>
-        <div class="ytdr"><b>Rs ${X} Cr</b><span>achieved</span>
-          <b>Rs ${X} Cr</b><span>target</span><b>${XP}</b><span>of target</span></div>
-        <div class="ytdbar"${tip(t+' \u2014 achieved Rs '+X+' Cr of Rs '+X+' Cr target')}>
+        <div class="ytdr"><b>${v}</b><span>achieved</span>
+          <b>${v}</b><span>target</span><b>${XP}</b><span>of target</span></div>
+        <div class="ytdbar"${tip(t+' \u2014 achieved '+v+' of '+v+' target')}>
           <i style="width:${f*100}%"></i><u style="left:100%"></u></div></div>`).join('')+
     `</div>`;
+
+  /* scheduling: stage ticks, then position and handover as inline bars */
+  const rows=PROJECTS.map((p,pi)=>{
+    const ticks=STG.map((_,i)=>`<span class="tick${i<=p.cur?'':' no'}"
+        ${tip(STG[i]+(i<=p.cur?': done':': not started'))}>${i<=p.cur?'\u2713':'\u2013'}</span>`).join('');
+    const soldPct=[74,52,38][pi], hoPct=[62,0,0][pi];
+    return `<tr class="strow" data-dd="${p.id}">
+      <td><span class="rlead">${remark('one line from the project owner')}
+        <span class="pn">${p.name}</span></span><br>
+        <span class="chip">${p.city}</span><span class="chip">${p.biz}</span></td>
+      <td class="c">${ticks}</td>
+      <td><div class="posbar"${tip('Sold '+soldPct+'% of total')}><i style="width:${soldPct}%"></i></div>
+        <div class="posnum"><span>total <b>${X}</b></span><span>sold <b>${X}</b></span>
+          <span>remaining <b>${X}</b></span><span>sold <b>${XP}</b></span></div></td>
+      <td><div class="posbar"${tip('Handed over '+hoPct+'% of sold')}><i style="width:${hoPct}%"></i></div>
+        <div class="posnum"><span>handed over <b>${X}</b></span><span>left <b>${X}</b></span></div></td>
+      <td class="c exp" id="ex-${p.id}">+</td></tr>
+      <tr id="dr-${p.id}" hidden><td colspan="5" style="padding:0"></td></tr>`;
+  }).join('');
+
+  const sch=`<table><thead><tr>
+      <th style="width:210px">Project</th>
+      <th class="c" style="width:150px">${STG.join(' &middot; ')}</th>
+      <th>Sales position</th><th style="width:230px">Handover</th>
+      <th style="width:22px"></th></tr></thead><tbody>${rows}</tbody></table>`;
+
   $('#v-ov').innerHTML=ytd+rib+srcMix()+
-    card('Project scheduling','milestone pins mark where each stage begins and ends',sch)+act;
+    card('Project scheduling','',sch,
+      `<span style="display:flex;gap:8px;align-items:center">
+         ${sel(UNITS,'posu',POSUNIT)}${sel(['Overall view'].concat(PROJECTS.map((p,i)=>'Project '+(i+1))),'ovs',OVSCOPE)}</span>`);
   wireRemarks($('#v-ov'));
+  const os=$('[data-ovs]'); if(os) os.addEventListener('change',()=>{OVSCOPE=+os.value;rOverview();});
+  const pu=$('[data-posu]'); if(pu) pu.addEventListener('change',()=>{POSUNIT=+pu.value;rOverview();});
   let lastHit=0, lastId='';
   document.querySelectorAll('[data-dd]').forEach(el=>el.addEventListener('click',()=>{
     const id=el.dataset.dd, now=Date.now();
-    if(id===lastId && now-lastHit<350){ lastHit=now; return; }   /* double-click = one open */
+    if(id===lastId && now-lastHit<350){ lastHit=now; return; }
     lastHit=now; lastId=id;
-    if(OPEN&&OPEN!==id){$('#dr-'+OPEN).hidden=true;$('#dr-'+OPEN).innerHTML='';$('#ex-'+OPEN).textContent='+';}
+    if(OPEN&&OPEN!==id){$('#dr-'+OPEN).hidden=true;$('#dr-'+OPEN).firstElementChild.innerHTML='';$('#ex-'+OPEN).textContent='+';}
     const dr=$('#dr-'+id), open=!dr.hidden;
     dr.hidden=open; $('#ex-'+id).textContent=open?'+':'\u2212';
-    if(!open){dr.innerHTML=panel(PROJECTS.find(p=>p.id===id));OPEN=id;}
-    else{dr.innerHTML='';OPEN=null;}
+    if(!open){dr.firstElementChild.innerHTML=panel(PROJECTS.find(p=>p.id===id));OPEN=id;}
+    else{dr.firstElementChild.innerHTML='';OPEN=null;}
     fitView();
   }));
+}
+
+/* ══════════ 5 · ACTION ITEMS ══════════ */
+function rAct(){
+  setTimeout(fitView,0);
+  $('#v-act').innerHTML=card('Action items from previous meetings','',
+    tbl(['','','c','c','c',''],['Project','Action','Owner (s)','Timeline','Status','Remarks'],
+      [1,2,3,4,5,6,7,8].map(()=>[X,X,X,X,X,X]),null,'actt'));
 }
 
 function panel(p){
@@ -600,7 +617,7 @@ function rMkt(){
   const rib=ribbon([
     ['Spend',[['Spend','Rs '+XY+' Cr','XX% of yearly budget'],
               ['Spend as % of sales value','Xx %','% of sales value &middot; target Xx%']]],
-    ['Efficiency',[['Cost per qualified lead','Rs '+XY,''],
+    ['Efficiency',[['Cost per lead','Rs '+XY,''],
                    ['Cost per booking','Rs '+XY,'']]]]);
 
   const ONLINE=[['Ad views',100,''],['Clicks',72,'XX% of views'],['Leads',46,'XX% of clicks'],
@@ -610,14 +627,43 @@ function rMkt(){
                  ['Contacted',48,'XX% of leads'],['Qualified',34,'XX% of leads'],
                  ['Site visits',20,'XX% of qualified'],['Booked',7,'XX% of site visits']];
   const F=FMODE?OFFLINE:ONLINE;
+  /* a real funnel: trapezoids, with an axis break where the scale jumps */
+  const BRK=FMODE?1:2;          /* rows above the break are drawn on a compressed scale */
+  const W0=300, BH=30, GAPB=16, SVGH=F.length*BH+GAPB;
+  const wide=F.slice(0,BRK).map((r,i)=>W0*0.94-i*W0*0.09);
+  const narrow=F.slice(BRK).map(r=>Math.max(W0*r[1]/100*0.60,W0*0.06));
+  const widths=wide.concat(narrow);
+  let svg=`<svg viewBox="0 0 ${W0} ${SVGH}" width="100%" height="${SVGH}"
+    preserveAspectRatio="xMidYMid meet" style="max-height:${SVGH}px" role="img"
+    aria-label="funnel, all values XX">`;
+  let yv=0;
+  widths.forEach((w,i)=>{
+    if(i===BRK){
+      svg+=`<path d="M0 ${yv+3} L${W0} ${yv+3}" stroke="#B4B4B4" stroke-width="1"
+              stroke-dasharray="5 4" fill="none"/>
+            <path d="M${W0/2-20} ${yv+10} l6 -6 l6 6 l6 -6 l6 6" stroke="#5C5C5C"
+              stroke-width="1.2" fill="none"/>
+            <text x="4" y="${yv+12}" font-family="Arial" font-size="8"
+              fill="#858585">scale break</text>`;
+      yv+=GAPB;
+    }
+    const nw=widths[i+1]!==undefined?widths[i+1]:w*0.72;
+    svg+=`<polygon points="${(W0-w)/2},${yv} ${(W0+w)/2},${yv} ${(W0+nw)/2},${yv+BH-3} ${(W0-nw)/2},${yv+BH-3}"
+        fill="#5C5C5C"><title>${F[i][0]}: XX</title></polygon>
+      <text x="${W0/2}" y="${yv+BH/2}" text-anchor="middle" dominant-baseline="middle"
+        font-family="Arial" font-size="11" font-weight="bold" fill="#FFFFFF">XX</text>`;
+    yv+=BH;
+  });
+  svg+=`</svg>`;
+  const rail=`<div class="frail">`+F.map(([n,w,base],i)=>
+      `${i===BRK?`<div class="frailbrk"></div>`:''}
+       <div class="frailrow"><span class="fnm">${n}</span>
+         <span class="fpc">${XP}</span><span class="fbase">${base||'\u2014'}</span></div>`).join('')+
+    `</div>`;
   const funnel=card('','',
     `<div class="fhd">${btns(['Online','Offline'],FMODE,'fm')}</div>
-     <div class="fband">MARKETING</div>`+
-    F.map(([n,w,base])=>`<div class="frow2">
-        <span class="fnm">${n}</span>
-        <div class="fbwrap"><span class="fb1" style="width:${w}%"${tip(n+': '+X)}></span>
-          <span class="fval">${X}</span></div>
-        <span class="fbase">${base||XP}</span></div>`).join(''));
+     <div class="fband">MARKETING</div>
+     <div class="fgrid">${svg}${rail}</div>`);
 
   const mom=card('Month by month, enquiries by outcome','',
     `<div class="lg2"><span><i class="sw" style="background:var(--g3)"></i>Leads</span>
@@ -637,20 +683,20 @@ function rMkt(){
 
   const av=card('Cost by avenue','',
     tbl(['','c','c','c','c','c'],
-      ['Avenue','Channel','Leads','Qualified','Cost/qual lead','Bookings attrib.'],
-      [['Meta/Instagram','Online',X,X,'Rs '+X,X],
-       ['Google search','Online',X,X,'Rs '+X,X],
-       ['Portals','Online',X,X,'Rs '+X,X],
-       ['Channel partner','Offline',X,X,'Rs '+X,X],
-       ['Referral','Offline',X,X,'Rs '+X,X],
-       ['<b>Total</b>','',X,X,'Rs '+X,X]]));
+      ['Avenue','Channel','Leads','Qualified','Cost / lead','Cost / booking'],
+      [['Meta/Instagram','Online',X,X,'Rs '+X,'Rs '+X],
+       ['Google search','Online',X,X,'Rs '+X,'Rs '+X],
+       ['Portals','Online',X,X,'Rs '+X,'Rs '+X],
+       ['Channel partner','Offline',X,X,'Rs '+X,'Rs '+X],
+       ['Referral','Offline',X,X,'Rs '+X,'Rs '+X],
+       ['<b>Total</b>','',X,X,'Rs '+X,'Rs '+X]]));
 
-  const ps=card('Pre-sales discipline','',
-    tbl(['','c','c'],['Measure','Value','Target'],
+  const ps=card('Pre-sales discipline <span class="tbd">To be populated later</span>','',
+    `<div class="greyed">`+tbl(['','c','c'],['Measure','Value','Target'],
       [['Contact rate',XP,XP],['First response TAT','XX hrs','under XX hrs'],
        ['Interactions per lead',X,X],['Visits scheduled vs completed','XX/XX','&mdash;'],
        ['No-show rate',XP,'under '+XP],['Open leads untouched over 7 days',X,'0'],
-       ['Lead ageing, over 30 days',X,'&mdash;']]));
+       ['Lead ageing, over 30 days',X,'&mdash;']])+`</div>`);
 
   $('#v-mkt').innerHTML=rib+`<div class="row h2">${funnel}${mom}</div>`+
     `<div class="row h2">${av}${ps}</div>`;
@@ -738,8 +784,31 @@ function rResi(){
     tbl(['','c','c','c','c'],['Measure','Project 1','Project 2','Project 3','Portfolio'],
       [['Planned price, Rs/sq.ft',X,X,X,X],['Achieved price, Rs/sq.ft',X,X,X,X]]));
 
+  const CFG=[['1 BHK',82],['2 BHK',68],['3 BHK',44],['4 BHK and above',26]];
+  const cfg=card('How each configuration is selling','sold as a share of that configuration',
+    tbl(['','n','c','c','c','c','c'],
+      ['Configuration','','Total','Sold','Unsold','Sold %','Months of inventory'],
+      CFG.map(([c,f])=>[`<span class="pn">${c}</span>`,
+        `<div class="posbar" style="width:120px"${tip(c+': '+f+'% sold')}><i style="width:${f}%"></i></div>`,
+        X,X,X,XP,X]),
+      ['<b>Total</b>','',X,X,X,XP,X])+
+    `<div class="note">Sorted as launched; the bar makes the fast and slow configurations obvious at a glance</div>`);
+
+  const brk=card('Channel mix and brokerage','top 5 partners; the full list stays in the tracker',
+    tbl(['','c','c','c','c','c'],
+      ['Channel','Bookings','Share of bookings','Sales value','Brokerage paid','Brokerage % of value'],
+      [['Direct',X,XP,'Rs '+X+' Cr','&mdash;','&mdash;'],
+       ['Referral',X,XP,'Rs '+X+' Cr','&mdash;','&mdash;'],
+       ['Channel partner',X,XP,'Rs '+X+' Cr','Rs '+X+' Cr',XP],
+       ['<span class="sub">Top partner 1</span>',X,XP,'Rs '+X+' Cr','Rs '+X+' Cr',XP],
+       ['<span class="sub">Top partner 2</span>',X,XP,'Rs '+X+' Cr','Rs '+X+' Cr',XP],
+       ['<span class="sub">Top partner 3</span>',X,XP,'Rs '+X+' Cr','Rs '+X+' Cr',XP]],
+      ['<b>Total</b>',X,'100%','Rs '+X+' Cr','Rs '+X+' Cr',XP])+
+    `<div class="note">Brokerage as a share of sales value is the true cost of the partner channel</div>`);
+
   $('#v-sub').innerHTML=rib+`<div class="row h2">${pos}${mom}</div>`+
-    `<div class="row h2">${inv}${price}</div>`;
+    `<div class="row h2">${inv}${price}</div>`+
+    `<div class="row h2">${cfg}${brk}</div>`;
   document.querySelectorAll('[data-sp]').forEach(b=>b.addEventListener('click',()=>{SPOS=+b.dataset.sp;rResi();}));
 }
 
@@ -911,7 +980,7 @@ function mountFilters(){
 }
 
 /* ══════════ tabs ══════════ */
-const R={ov:rOverview,mkt:rMkt,sal:rSales,crm:rCRM}, DONE={};
+const R={ov:rOverview,mkt:rMkt,sal:rSales,crm:rCRM,act:rAct}, DONE={};
 /* scale the rendered view so it always fits the viewport - no page scroll, no clipping */
 function fitView(){
   document.querySelectorAll('.view').forEach(v=>{
