@@ -389,6 +389,18 @@ tr.clickrow:hover td{background:#F2F2F2!important}
 .fnlbrk::before{content:"";position:absolute;left:0;right:0;top:50%;
   border-top:1px dashed var(--g4)}
 .fnlbrk span{position:relative;background:var(--card);padding:0 8px;font-size:9px;color:var(--g3)}
+
+/* ───── collapsible card ───── */
+.cbtn{font:inherit;font-size:12.5px;font-weight:700;background:none;border:none;padding:0;
+  cursor:pointer;display:inline-flex;align-items:center;gap:7px;color:var(--ink)}
+.cbtn::before{content:"\203a";color:var(--red);font-size:15px;font-weight:700;line-height:1;
+  display:inline-block;width:9px}
+.cbtn[aria-expanded="true"]::before{content:"\2304";font-size:13px}
+.cbody[hidden]{display:none}
+.chint{font-size:9.5px;color:var(--g3);margin-left:8px;font-weight:400}
+
+.hpclick i[data-metric]{cursor:pointer}
+.hpclick i[data-metric]:hover{outline:1px solid var(--ink);outline-offset:-1px}
 </style></head>
 <body><div class="top"></div><div class="wrap">
   <div class="hdr"><h1>Sales, Marketing &amp; CRM</h1>
@@ -428,6 +440,20 @@ function ribbon(bands){
     boxes.map(([l,v,s])=>`<div class="bx"><span class="bl">${l}</span>
       <span class="bv">${v}</span>${s?`<span class="cmp">${s}</span>`:''}</div>`).join('')+
     `</div></div>`).join('')+`</div>`;
+}
+let CCID=0;
+function cardCollapse(title,note,body,open){
+  const id='cc'+(++CCID);
+  return `<div class="card"><div class="ct">
+      <button class="cbtn" data-cc="${id}" aria-expanded="${!!open}">${title}</button>
+      ${note?`<span class="cn">${note}</span>`:''}</div>
+    <div class="cbody" id="${id}"${open?'':' hidden'}>${body}</div></div>`;
+}
+function wireCollapse(scope){
+  (scope||document).querySelectorAll('[data-cc]').forEach(b=>b.addEventListener('click',()=>{
+    const t=document.getElementById(b.dataset.cc), open=b.getAttribute('aria-expanded')==='true';
+    b.setAttribute('aria-expanded',!open); t.hidden=open; fitView();
+  }));
 }
 function card(title,note,body,extra){
   return `<div class="card"><div class="ct"><h2>${title}</h2>
@@ -536,9 +562,15 @@ function hprog(o){
   if(o.keys){
     const four=o.keys.map(([k,lab])=>
       `<button class="mlink" data-metric="${k}" data-row="${o.label}">${lab} <b>${X}</b></button>`).join('');
+    const clickable=`<i class="f1" style="left:0;width:${f}%" data-metric="sold" data-row="${o.label}"
+         ${tip('Sold: '+X+' \u2014 click for the breakdown')}></i>
+       ${sf>0?`<i class="f2" style="left:${f}%;width:${sf}%" data-metric="shortfall" data-row="${o.label}"
+         ${tip('Shortfall: '+X+' \u2014 click for the breakdown')}></i>`:''}
+       <i style="left:${t}%;width:${100-t}%;background:var(--g5)" data-metric="total" data-row="${o.label}"
+         ${tip('Not in this period\u2019s target: '+X+' \u2014 click for the breakdown')}></i>`;
     return `<div class="hpwrap">
       <div class="hphd"><b>${o.label}</b><span>${o.unit||''}</span></div>
-      <div class="hp">${body}
+      <div class="hp hpclick">${clickable}
         <span class="mk" style="left:${t}%"></span></div>
       <div class="hplab4">${four}</div></div>`;
   }
@@ -683,9 +715,7 @@ function panel(p){
     <div class="ddn">${p.name}</div>
     <div class="ddb">`+boxes.map(([l,v])=>
       `<div><span class="bl">${l}</span><span class="bv">${v}</span></div>`).join('')+`</div>
-    <div class="ddg">
-      <div><div class="sec">Position</div>${kv(left)}</div>
-      <div><div class="sec">Project profile</div>${kv(right)}</div></div></div>`;
+    <div class="ddg"><div>${kv(left)}</div><div>${kv(right)}</div></div></div>`;
 }
 
 /* ══════════ 2 · MARKETING & PRE-SALES ══════════ */
@@ -848,7 +878,8 @@ function rResi(){
     tbl(['','c','c','c','c'],['Measure','Project 1','Project 2','Project 3','Portfolio'],
       [['Planned price, Rs/sq.ft',X,X,X,X],['Achieved price, Rs/sq.ft',X,X,X,X]]));
 
-  const brk=card('Channel mix and brokerage','top 5 partners; the full list stays in the tracker',
+  const brk=cardCollapse('Channel mix and brokerage <span class="chint">click to open</span>',
+    'top 5 partners; the full list stays in the tracker',
     tbl(['','c','c','c','c','c'],
       ['Channel','Bookings','Share of bookings','Sales value','Brokerage paid','Brokerage % of value'],
       [['Direct',X,XP,'Rs '+X+' Cr','&mdash;','&mdash;'],
@@ -862,7 +893,12 @@ function rResi(){
     (RDRILL?`<div class="row">${drillCard()}</div>`:'')+
     `<div class="row h2">${inv}${price}</div>`+`<div class="row">${brk}</div>`;
 
+  wireCollapse($('#v-sub'));
+  let mHit=0, mKey='';
   document.querySelectorAll('[data-metric]').forEach(b=>b.addEventListener('click',()=>{
+    const key=b.dataset.metric+'|'+b.dataset.row, now=Date.now();
+    if(key===mKey && now-mHit<350){ mHit=now; return; }   /* double-click = one open */
+    mHit=now; mKey=key;
     /* a project chosen at the top goes straight to configuration */
     RDRILL={metric:b.dataset.metric, row:b.dataset.row,
             level: RSCOPE>0?'config':'projects', project: RSCOPE>0?RSCOPE-1:null};
