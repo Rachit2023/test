@@ -335,6 +335,22 @@ tr.remrow td{background:var(--g6)!important;font-size:10px;color:var(--g2);paddi
 .frailrow .fpc{text-align:right;font-weight:700;font-size:10px}
 .frailrow .fbase{text-align:right;font-size:9.5px;color:var(--g2)}
 .frailbrk{height:14px}
+
+/* ───── clickable metric labels and the drill chain ───── */
+.mlink{font:inherit;background:none;border:none;padding:0;cursor:pointer;color:var(--g2);
+  font-size:10px;display:inline-flex;gap:4px;align-items:baseline}
+.mlink b{color:var(--ink);font-size:10.5px;border-bottom:1px dotted var(--g3)}
+.mlink:hover b{border-bottom-color:var(--red);color:var(--red)}
+.mlink[aria-pressed="true"] b{color:var(--red);border-bottom:1px solid var(--red)}
+.hplab4{display:flex;justify-content:space-between;margin-top:4px}
+.drillhd{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.crumb{font-size:10px;color:var(--g2)}
+.crumb b{color:var(--ink)}
+.crumb .sep{color:var(--g4);margin:0 5px}
+.backb{font:inherit;font-size:10px;font-weight:700;background:#fff;border:1px solid var(--g4);
+  padding:2px 9px;cursor:pointer}
+tr.clickrow{cursor:pointer}
+tr.clickrow:hover td{background:#F2F2F2!important}
 </style></head>
 <body><div class="top"></div><div class="wrap">
   <div class="hdr"><h1>Sales, Marketing &amp; CRM</h1>
@@ -470,6 +486,15 @@ function hprog(o){
        <i style="left:${t}%;width:${100-t}%;background:var(--g5)"${tip(o.n3+': '+X)}></i>`;
   const midLab = (mid!==undefined) ? `<span>${o.nMid} <b>${X}</b></span>`
                                    : `<span>${o.n2} <b>${X}</b></span>`;
+  if(o.keys){
+    const four=o.keys.map(([k,lab])=>
+      `<button class="mlink" data-metric="${k}" data-row="${o.label}">${lab} <b>${X}</b></button>`).join('');
+    return `<div class="hpwrap">
+      <div class="hphd"><b>${o.label}</b><span>${o.unit||''}</span></div>
+      <div class="hp">${body}
+        <span class="mk" style="left:${t}%"></span></div>
+      <div class="hplab4">${four}</div></div>`;
+  }
   return `<div class="hpwrap">
     <div class="hphd"><b>${o.label}</b><span>${o.unit||''}</span></div>
     <div class="hp">${body}
@@ -716,6 +741,10 @@ function rSales(){
   (SUB==='res'?rResi:rComm)();
 }
 
+let RSCOPE=0, RDRILL=null;
+const PROJNAMES=['Project 1','Project 2','Project 3'];
+const CONFIGS=[['1 BHK',82],['2 BHK',68],['3 BHK',44],['4 BHK and above',26]];
+
 function rResi(){
   setTimeout(fitView,0);
   const rib=ribbon([
@@ -724,54 +753,54 @@ function rResi(){
     ['Velocity',[['Absorption rate',X,'units / month, vs Xx target'],
                  ['Months of inventory',X,'months, vs Xx target']]]]);
 
+  const KEYS=[['total','Total units'],['tosell','To sell'],['sold','Sold'],['shortfall','Shortfall']];
   const pos=card('Overall sales position','',
-    hprog({label:'Units',unit:'count',fill:62,target:74,
-      n1:'Sold',n2:'Shortfall to target',n3:'Unsold beyond target',n4:'Target',n5:'Total'})+
-    hprog({label:'SBA',unit:'sq ft',fill:66,target:72,
-      n1:'Sold',n2:'Shortfall to target',n3:'Unsold beyond target',n4:'Target',n5:'Total'})+
-    hprog({label:'Value',unit:'Rs Cr',fill:60,target:70,
-      n1:'Sold',n2:'Shortfall to target',n3:'Unsold beyond target',n4:'Target',n5:'Total'})+
+    hprog({label:'Units',unit:'count',fill:62,target:74,keys:KEYS,
+      n1:'Sold',n2:'Shortfall',n3:'Not in target'})+
+    hprog({label:'SBA',unit:'sq ft',fill:66,target:72,keys:KEYS,
+      n1:'Sold',n2:'Shortfall',n3:'Not in target'})+
+    hprog({label:'Value',unit:'Rs Cr',fill:60,target:70,keys:KEYS,
+      n1:'Sold',n2:'Shortfall',n3:'Not in target'})+
     `<div class="hpleg"><span><i class="sw" style="background:var(--g2)"></i>sold</span>
       <span><i class="sw" style="background:var(--red)"></i>shortfall to target</span>
-      <span><i class="sw" style="background:var(--g5)"></i>unsold beyond target</span></div>`,
-    `<span style="display:flex;gap:6px;align-items:center">${btns(['Sold vs unsold','Registered vs pending'],SPOS,'sp')}
-       ${sel(['Overall','Project 1','Project 2','Project 3'],'rs1',0)}</span>`);
+      <span><i class="sw" style="background:var(--g5)"></i>not in this period&rsquo;s target</span>
+      <span class="na">click any number for the breakdown</span></div>`,
+    sel(['Overall'].concat(PROJNAMES),'rs1',RSCOPE));
 
   const mom=card('Month on month, plan vs achieved','',
     ['Apr','May','Jun'].map(m=>`<div class="pv"><span class="pm">${m}</span><div>
         <div class="pl"><span class="pt">PLAN</span><div class="pb" style="width:82%"></div><span class="pn2">${X}</span></div>
         <div class="pl"><span class="pt">NET</span><div class="pb a" style="width:50%"></div><span class="pn2 red">${X}</span></div>
-      </div></div>`).join(''),
-    sel(['Overall','Project 1','Project 2','Project 3'],'rs2',0));
+      </div></div>`).join('')+
+    tbl(['','c','c','c'],['Measure','Apr','May','Jun'],
+      [['Gross sales',X,X,X],['Cancellations',X,X,X],['<b>Net sales</b>',X,X,X]]),
+    sel(['Overall'].concat(PROJNAMES),'rs2',RSCOPE));
 
-  /* bars = unsold units, red line over them = months of inventory */
   const MO=['Jan','Feb','Mar','Apr','May','Jun'];
-  const UNS=[96,92,86,84,82,80], MOI=[0.34,0.40,0.48,0.60,0.74,0.90], CH=120;
-  const pts=MOI.map((f,i)=>{
-    const x=((i+0.5)/MO.length)*100, y=CH-18-f*(CH-42);
-    return [x,y];});
-  const inv=card('Inventory trend','unsold units, bars &middot; months of inventory, line',
+  const TGT=[92,88,84,80,76,72], MOI=[0.34,0.40,0.48,0.60,0.74,0.90], CH=112;
+  const pts=MOI.map((f,i)=>[((i+0.5)/MO.length)*100, CH-18-f*(CH-42)]);
+  const inv=card('Inventory trend','inventory in that month&rsquo;s target, bars &middot; months of inventory, line',
     `<div style="position:relative">
       <div class="bars" style="height:${CH}px">`+MO.map((m,i)=>
         `<div class="bcol"><div class="bwr">
-          <span class="bvv" style="bottom:${UNS[i]+3}px;top:auto">${X}</span>
-          <div class="bar" style="height:${UNS[i]}px"${tip(m+' unsold units: '+X)}></div></div>
+          <span class="bvv" style="bottom:${TGT[i]+3}px;top:auto">${X}</span>
+          <div class="bar" style="height:${TGT[i]}px"${tip(m+' \u2014 inventory in target: '+X)}></div></div>
         <div class="blb">${m}</div></div>`).join('')+`</div>
-      <svg class="moline" viewBox="0 0 100 ${CH}" preserveAspectRatio="none"
+      <svg viewBox="0 0 100 ${CH}" preserveAspectRatio="none"
            style="position:absolute;left:0;top:0;width:100%;height:${CH}px;pointer-events:none">
-        <polyline points="${pts.map(p=>p.join(',')).join(' ')}"
-          fill="none" stroke="var(--red)" stroke-width="0.5" vector-effect="non-scaling-stroke"/>
-      </svg>
+        <polyline points="${pts.map(p=>p.join(',')).join(' ')}" fill="none"
+          stroke="var(--red)" stroke-width="0.5" vector-effect="non-scaling-stroke"/></svg>
       <div style="position:absolute;left:0;top:0;width:100%;height:${CH}px;pointer-events:none">`+
         pts.map((p,i)=>`<span style="position:absolute;left:${p[0]}%;top:${p[1]}px;
           width:9px;height:9px;background:var(--red);border-radius:50%;pointer-events:auto;
           transform:translate(-50%,-50%)"${tip(MO[i]+' months of inventory: '+X)}></span>`).join('')+
       `</div></div>`+
     tbl(['','c','c','c','c','c','c'],['','Jan','Feb','Mar','Apr','May','Jun'],
-      [['Absorption, units/month',X,X,X,X,X,X],['Months of inventory',X,X,X,X,X,X]]));
+      [['Inventory in target',X,X,X,X,X,X],['Months of inventory',X,X,X,X,X,X]])+
+    `<div class="note">Only stock carried in that month&rsquo;s sales target, not the full unsold book</div>`);
 
   const price=card('Planned vs achieved price, by project','Rs per sq.ft',
-    `<div class="bars" style="height:96px">`+['Project 1','Project 2','Project 3'].map((p,i)=>{
+    `<div class="bars" style="height:96px">`+PROJNAMES.map((p,i)=>{
       const pl=[68,64,58][i], ac=[72,52,62][i];
       return `<div class="bcol"><div class="bwr">
           <span class="bvv" style="bottom:${Math.max(pl,ac)+3}px;top:auto">${X}</span>
@@ -784,16 +813,6 @@ function rResi(){
     tbl(['','c','c','c','c'],['Measure','Project 1','Project 2','Project 3','Portfolio'],
       [['Planned price, Rs/sq.ft',X,X,X,X],['Achieved price, Rs/sq.ft',X,X,X,X]]));
 
-  const CFG=[['1 BHK',82],['2 BHK',68],['3 BHK',44],['4 BHK and above',26]];
-  const cfg=card('How each configuration is selling','sold as a share of that configuration',
-    tbl(['','n','c','c','c','c','c'],
-      ['Configuration','','Total','Sold','Unsold','Sold %','Months of inventory'],
-      CFG.map(([c,f])=>[`<span class="pn">${c}</span>`,
-        `<div class="posbar" style="width:120px"${tip(c+': '+f+'% sold')}><i style="width:${f}%"></i></div>`,
-        X,X,X,XP,X]),
-      ['<b>Total</b>','',X,X,X,XP,X])+
-    `<div class="note">Sorted as launched; the bar makes the fast and slow configurations obvious at a glance</div>`);
-
   const brk=card('Channel mix and brokerage','top 5 partners; the full list stays in the tracker',
     tbl(['','c','c','c','c','c'],
       ['Channel','Bookings','Share of bookings','Sales value','Brokerage paid','Brokerage % of value'],
@@ -801,15 +820,54 @@ function rResi(){
        ['Referral',X,XP,'Rs '+X+' Cr','&mdash;','&mdash;'],
        ['Channel partner',X,XP,'Rs '+X+' Cr','Rs '+X+' Cr',XP],
        ['<span class="sub">Top partner 1</span>',X,XP,'Rs '+X+' Cr','Rs '+X+' Cr',XP],
-       ['<span class="sub">Top partner 2</span>',X,XP,'Rs '+X+' Cr','Rs '+X+' Cr',XP],
-       ['<span class="sub">Top partner 3</span>',X,XP,'Rs '+X+' Cr','Rs '+X+' Cr',XP]],
-      ['<b>Total</b>',X,'100%','Rs '+X+' Cr','Rs '+X+' Cr',XP])+
-    `<div class="note">Brokerage as a share of sales value is the true cost of the partner channel</div>`);
+       ['<span class="sub">Top partner 2</span>',X,XP,'Rs '+X+' Cr','Rs '+X+' Cr',XP]],
+      ['<b>Total</b>',X,'100%','Rs '+X+' Cr','Rs '+X+' Cr',XP]));
 
   $('#v-sub').innerHTML=rib+`<div class="row h2">${pos}${mom}</div>`+
-    `<div class="row h2">${inv}${price}</div>`+
-    `<div class="row h2">${cfg}${brk}</div>`;
-  document.querySelectorAll('[data-sp]').forEach(b=>b.addEventListener('click',()=>{SPOS=+b.dataset.sp;rResi();}));
+    (RDRILL?`<div class="row">${drillCard()}</div>`:'')+
+    `<div class="row h2">${inv}${price}</div>`+`<div class="row">${brk}</div>`;
+
+  document.querySelectorAll('[data-rs1],[data-rs2]').forEach(sl=>sl.addEventListener('change',()=>{
+    RSCOPE=+sl.value; RDRILL=null; rResi();}));
+  document.querySelectorAll('[data-metric]').forEach(b=>b.addEventListener('click',()=>{
+    /* a project chosen at the top goes straight to configuration */
+    RDRILL={metric:b.dataset.metric, row:b.dataset.row,
+            level: RSCOPE>0?'config':'projects', project: RSCOPE>0?RSCOPE-1:null};
+    rResi();}));
+  document.querySelectorAll('[data-proj]').forEach(r=>r.addEventListener('click',()=>{
+    RDRILL={...RDRILL, level:'config', project:+r.dataset.proj}; rResi();}));
+  const bb=$('[data-back]'); if(bb) bb.addEventListener('click',()=>{
+    if(RDRILL.level==='config' && RSCOPE===0) RDRILL={...RDRILL,level:'projects',project:null};
+    else RDRILL=null;
+    rResi();});
+}
+
+function drillCard(){
+  const MET={total:'Total units',tosell:'To sell',sold:'Sold',shortfall:'Shortfall'}[RDRILL.metric];
+  const crumb=`<span class="crumb"><b>${MET}</b><span class="sep">&rsaquo;</span>`+
+    (RDRILL.level==='projects'
+      ? `by project`
+      : `${PROJNAMES[RDRILL.project]}<span class="sep">&rsaquo;</span>by configuration`)+
+    `</span>`;
+  const head=`<div class="drillhd"><button class="backb" data-back>&lsaquo; Back</button>${crumb}</div>`;
+  if(RDRILL.level==='projects'){
+    return card(`${MET}, by project`,'click a project for its configuration split',
+      head+tbl(['','c','c','c','c','c'],
+        ['Project','Total units','To sell','Sold','Shortfall','Sold %'],
+        PROJNAMES.map((p,i)=>[`<span class="pn">${p}</span>`,X,X,X,X,XP]),
+        ['<b>Total</b>',X,X,X,X,XP])
+        .replace(/<tbody>/,'<tbody>')
+        .replace(/<tr><td class=""><span class="pn">Project (\d)<\/span><\/td>/g,
+                 (m,n)=>`<tr class="clickrow" data-proj="${+n-1}"><td class=""><span class="pn">Project ${n}</span></td>`));
+  }
+  return card(`${MET} &mdash; ${PROJNAMES[RDRILL.project]}, by configuration`,
+    'what is selling and what is not',
+    head+tbl(['','n','c','c','c','c','c'],
+      ['Configuration','','Total units','To sell','Sold','Shortfall','Sold %'],
+      CONFIGS.map(([c,f])=>[`<span class="pn">${c}</span>`,
+        `<div class="posbar" style="width:110px"${tip(c+': '+f+'% sold')}><i style="width:${f}%"></i></div>`,
+        X,X,X,X,XP]),
+      ['<b>Total</b>','',X,X,X,X,XP]));
 }
 
 let BTSPER=0;
@@ -848,9 +906,9 @@ function rComm(){
     sel(['3 months','6 months','YTD','Total'],'btsper',BTSPER));
 
   const rr=[remLead('Party 1',6),remLead('Party 2',6),remLead('Party 3',6)];
-  const data=[['Lease','Asset 1, Asset 2','Broker','XX sq.ft','Hot'],
-              ['Lease','Asset 1','Broker','XX sq.ft','Warm'],
-              ['Sale','Asset 2','Broker','Not captured','Not stated']];
+  const data=[['Lease','Asset 1, Asset 2','CBRE &middot; broker name','XX sq.ft','Hot'],
+              ['Lease','Asset 1','JLL &middot; broker name','XX sq.ft','Warm'],
+              ['Sale','Asset 2','Direct &middot; no broker','Not captured','Not stated']];
   let et=tbl(['','c','','','c','c'],
       ['Party','Business','Offered','Introduced by','Requirement','Status'],
       data.flatMap((d,i)=>[[rr[i].lead,d[0],d[1],d[2],d[3],d[4]],[`@@P${i}@@`,'','','','','']]));
