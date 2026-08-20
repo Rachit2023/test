@@ -328,14 +328,13 @@ tr.remrow td{background:var(--g6)!important;font-size:10px;color:var(--g2);paddi
 .greyed{opacity:.45}
 .tbd{font-size:9.5px;font-weight:700;color:var(--red);margin-left:8px}
 /* ───── funnel: svg shape plus a label rail ───── */
-.fgrid{display:grid;grid-template-columns:1fr 210px;gap:12px;align-items:start}
-.frail{display:flex;flex-direction:column}
-.frailrow{display:grid;grid-template-columns:1fr 44px 88px;gap:6px;align-items:center;
-  height:30px;font-size:10.5px}
-.frailrow .fnm{font-weight:700}
-.frailrow .fpc{text-align:right;font-weight:700;font-size:10px}
-.frailrow .fbase{text-align:right;font-size:9.5px;color:var(--g2)}
-.frailbrk{height:14px}
+
+
+
+
+
+
+
 
 /* ───── clickable metric labels and the drill chain ───── */
 .mlink{font:inherit;background:none;border:none;padding:0;cursor:pointer;color:var(--g2);
@@ -363,6 +362,33 @@ tr.clickrow:hover td{background:#F2F2F2!important}
 .htrack .c2{background:var(--red)}
 .hval{font-size:9.5px;font-weight:700;text-align:right}
 .hval.red{color:var(--red)}
+
+/* ───── stage boxes: done / in progress / not started ───── */
+.stgbox{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.sbx{border:1px solid var(--g4);background:#fff;padding:3px 4px;text-align:center;line-height:1.15}
+.sbx .ic{font-size:11px;font-weight:700;display:block}
+.sbx .nm{font-size:8.5px;color:var(--g2);display:block;margin-top:1px}
+.sbx.done{background:#EEF6F1;border-color:#BEDCCB}
+.sbx.done .ic{color:var(--grn)}
+.sbx.wip{background:#FCF4D6;border-color:#F1C21B}
+.sbx.wip .ic{color:#8A6100}
+.sbx.no .ic{color:var(--g4)}
+.stghd{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;font-size:8.5px;font-weight:700;
+  color:var(--g2);letter-spacing:.03em;text-align:center}
+
+/* ───── funnel: centred bars, straight edges ───── */
+.fnl{display:flex;flex-direction:column;gap:3px;margin-top:2px}
+.fnlrow{display:grid;grid-template-columns:1fr 92px 42px 96px;gap:10px;align-items:center}
+.fnlbarwrap{display:flex;justify-content:center}
+.fnlbar{height:24px;background:var(--g2);display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:10px;font-weight:700;cursor:default;min-width:26px}
+.fnlrow .fnm{font-size:10.5px;font-weight:700}
+.fnlrow .fpc{font-size:10px;font-weight:700;text-align:right}
+.fnlrow .fbase{font-size:9.5px;color:var(--g2);text-align:right}
+.fnlbrk{position:relative;height:14px;display:flex;align-items:center}
+.fnlbrk::before{content:"";position:absolute;left:0;right:0;top:50%;
+  border-top:1px dashed var(--g4)}
+.fnlbrk span{position:relative;background:var(--card);padding:0 8px;font-size:9px;color:var(--g3)}
 </style></head>
 <body><div class="top"></div><div class="wrap">
   <div class="hdr"><h1>Sales, Marketing &amp; CRM</h1>
@@ -560,7 +586,8 @@ function srcMix(){
 /* ══════════ 1 · OVERVIEW ══════════ */
 let OPEN=null, OVSCOPE=0, POSUNIT=0;
 const UNITS=['Units','Value (Rs Cr)','Area (sq ft)'];
-const STG=['Pre-sales','Active sales','Construction'];
+const STG=['Pre-sales','Active sales','Handover'];
+const STGSTATE=[[2,2,1],[2,1,0],[2,1,0]];   /* 2 done, 1 in progress, 0 not started */
 
 function rOverview(){
   setTimeout(fitView,0);
@@ -582,8 +609,14 @@ function rOverview(){
 
   /* scheduling: stage ticks, then position and handover as inline bars */
   const rows=PROJECTS.map((p,pi)=>{
-    const ticks=STG.map((_,i)=>`<span class="tick${i<=p.cur?'':' no'}"
-        ${tip(STG[i]+(i<=p.cur?': done':': not started'))}>${i<=p.cur?'\u2713':'\u2013'}</span>`).join('');
+    const st=STGSTATE[pi];
+    const LBL=['not started','in progress','done'];
+    const ICO=['\u2013','\u25d0','\u2713'];
+    const CLS=['no','wip','done'];
+    const ticks=`<div class="stgbox">`+STG.map((nm,i)=>
+      `<span class="sbx ${CLS[st[i]]}"${tip(nm+': '+LBL[st[i]])}>
+         <span class="ic">${ICO[st[i]]}</span><span class="nm">${LBL[st[i]]}</span></span>`).join('')+
+      `</div>`;
     const soldPct=[74,52,38][pi], hoPct=[62,0,0][pi];
     return `<tr class="strow" data-dd="${p.id}">
       <td><span class="rlead">${remLeadInline(p.name)}</span>
@@ -601,7 +634,8 @@ function rOverview(){
 
   const sch=`<table><thead><tr>
       <th style="width:210px">Project</th>
-      <th class="c" style="width:150px">${STG.join(' &middot; ')}</th>
+      <th class="c" style="width:210px"><div class="stghd">`+
+        STG.map(t=>`<span>${t.toUpperCase()}</span>`).join('')+`</div></th>
       <th>Sales position</th><th style="width:230px">Handover</th>
       <th style="width:22px"></th></tr></thead><tbody>${rows}</tbody></table>`;
 
@@ -671,43 +705,25 @@ function rMkt(){
                  ['Contacted',48,'XX% of leads'],['Qualified',34,'XX% of leads'],
                  ['Site visits',20,'XX% of qualified'],['Booked',7,'XX% of site visits']];
   const F=FMODE?OFFLINE:ONLINE;
-  /* a real funnel: trapezoids, with an axis break where the scale jumps */
-  const BRK=FMODE?1:2;          /* rows above the break are drawn on a compressed scale */
-  const W0=300, BH=30, GAPB=16, SVGH=F.length*BH+GAPB;
-  const wide=F.slice(0,BRK).map((r,i)=>W0*0.94-i*W0*0.09);
-  const narrow=F.slice(BRK).map(r=>Math.max(W0*r[1]/100*0.60,W0*0.06));
+  /* centred bars, straight edges; the two above the break sit on a compressed scale */
+  const BRK=FMODE?1:2;
+  const wide=F.slice(0,BRK).map((r,i)=>96-i*14);
+  const narrow=F.slice(BRK).map(r=>Math.max(r[1]*0.62,9));
   const widths=wide.concat(narrow);
-  let svg=`<svg viewBox="0 0 ${W0} ${SVGH}" width="100%" height="${SVGH}"
-    preserveAspectRatio="xMidYMid meet" style="max-height:${SVGH}px" role="img"
-    aria-label="funnel, all values XX">`;
-  let yv=0;
-  widths.forEach((w,i)=>{
-    if(i===BRK){
-      svg+=`<path d="M0 ${yv+3} L${W0} ${yv+3}" stroke="#B4B4B4" stroke-width="1"
-              stroke-dasharray="5 4" fill="none"/>
-            <path d="M${W0/2-20} ${yv+10} l6 -6 l6 6 l6 -6 l6 6" stroke="#5C5C5C"
-              stroke-width="1.2" fill="none"/>
-            <text x="4" y="${yv+12}" font-family="Arial" font-size="8"
-              fill="#858585">scale break</text>`;
-      yv+=GAPB;
-    }
-    const nw=widths[i+1]!==undefined?widths[i+1]:w*0.72;
-    svg+=`<polygon points="${(W0-w)/2},${yv} ${(W0+w)/2},${yv} ${(W0+nw)/2},${yv+BH-3} ${(W0-nw)/2},${yv+BH-3}"
-        fill="#5C5C5C"><title>${F[i][0]}: XX</title></polygon>
-      <text x="${W0/2}" y="${yv+BH/2}" text-anchor="middle" dominant-baseline="middle"
-        font-family="Arial" font-size="11" font-weight="bold" fill="#FFFFFF">XX</text>`;
-    yv+=BH;
-  });
-  svg+=`</svg>`;
-  const rail=`<div class="frail">`+F.map(([n,w,base],i)=>
-      `${i===BRK?`<div class="frailbrk"></div>`:''}
-       <div class="frailrow"><span class="fnm">${n}</span>
-         <span class="fpc">${XP}</span><span class="fbase">${base||'\u2014'}</span></div>`).join('')+
-    `</div>`;
-  const funnel=card('','',
+  const funnel=card('Marketing funnel','',
     `<div class="fhd">${btns(['Online','Offline'],FMODE,'fm')}</div>
-     <div class="fband">MARKETING</div>
-     <div class="fgrid">${svg}${rail}</div>`);
+     <div class="fnl">`+
+      F.map(([n,w,base],i)=>
+        (i===BRK?`<div class="fnlbrk"><span>scale break</span></div>`:'')+
+        `<div class="fnlrow">
+           <div class="fnlbarwrap">
+             <div class="fnlbar" style="width:${widths[i]}%"
+               ${tip(n+': '+X+'  \u00b7  '+(base||'top of funnel'))}>${X}</div></div>
+           <span class="fnm">${n}</span>
+           <span class="fpc">${XP}</span>
+           <span class="fbase">${base||'\u2014'}</span>
+         </div>`).join('')+
+    `</div>`);
 
   const mom=card('Month by month, enquiries by outcome','',
     `<div class="lg2"><span><i class="sw" style="background:var(--g3)"></i>Leads</span>
