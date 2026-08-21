@@ -35,17 +35,29 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .view[hidden]{display:none}
 /* ---- ribbon ---- */
 .rib{display:grid;gap:6px;margin-bottom:0;flex:0 0 auto}
+.rib.c5{grid-template-columns:repeat(5,1fr)}
 .rib.c4{grid-template-columns:repeat(4,1fr)} .rib.c3{grid-template-columns:repeat(3,1fr)}
 .rib.c2{grid-template-columns:repeat(2,1fr)}
-.band{background:var(--card);border:1px solid var(--line)}
+.band{background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column}
 .bh{background:var(--dark);color:#fff;font-size:12.0px;font-weight:700;letter-spacing:.06em;
-  text-transform:uppercase;padding:5px 10px}
-.bb{display:flex}
-.bx{flex:1;padding:5px 9px;border-right:1px solid var(--line);min-width:0}
+  text-transform:uppercase;padding:5px 10px;flex:0 0 auto}
+.bb{display:flex;flex:1 1 auto;align-items:stretch}
+.bx{flex:1 1 0;padding:5px 9px;border-right:1px solid var(--line);min-width:0;
+  display:flex;flex-direction:column}
 .bx:last-child{border-right:none}
-.bl{font-size:12.6px;color:var(--g2);display:block}
+/* the label takes the slack, so every value sits on the same baseline across bands */
+.bl{font-size:12.6px;color:var(--g2);display:block;flex:1 1 auto}
 .bv{font-size:21.6px;font-weight:700;display:block;margin-top:1px}
 .bv small{font-size:14.4px;font-weight:400;color:var(--g2)}
+/* five bands, ten boxes: tighten type and lock the header to one line so every
+   band body starts and ends at the same height */
+.rib.c5 .bh{font-size:11.4px;padding:5px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rib.c5 .bx{padding:5px 8px}
+.rib.c5 .bl{font-size:11.4px;line-height:1.25;min-height:2.5em}
+.rib.c5 .bv{font-size:18.0px}
+/* the sub-line reserves two lines whether it wraps or not, so a long unit in one
+   box cannot push its value off the baseline the other nine sit on */
+.rib.c5 .cmp{font-size:11.4px;line-height:1.2;min-height:2.4em}
 /* ---- cards ---- */
 .row{display:grid;gap:7px;margin-bottom:0;min-height:0}
 .row.h2{grid-template-columns:1fr 1fr}
@@ -129,6 +141,8 @@ tfoot td{font-weight:700;background:var(--g6)!important}
 .tg[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
 .tgr{display:flex;gap:4px}
 @media(max-width:1100px){.row.h2{grid-template-columns:1fr}.rib.c4,.rib.c3{grid-template-columns:1fr 1fr}
+  .rib.c5{grid-template-columns:repeat(3,1fr)}
+  .rib.c5 .bh{white-space:normal}
   .cc{grid-template-columns:1fr}.ddg{grid-template-columns:1fr}}
 /* ───── v2 additions ───── */
 .own{display:inline-block;font-size:10.8px;font-weight:700;padding:1px 6px;border-radius:3px;
@@ -492,7 +506,7 @@ function ribbon(bands){
   return `<div class="rib c${bands.length}">`+bands.map(([t,boxes])=>
     `<div class="band"><div class="bh">${t}</div><div class="bb">`+
     boxes.map(([l,v,s])=>`<div class="bx"><span class="bl">${l}</span>
-      <span class="bv">${v}</span>${s?`<span class="cmp">${s}</span>`:''}</div>`).join('')+
+      <span class="bv">${v}</span><span class="cmp">${s||'&nbsp;'}</span></div>`).join('')+
     `</div></div>`).join('')+`</div>`;
 }
 let CCID=0;
@@ -730,10 +744,16 @@ const STGSTATE=[[2,2,1],[2,1,0],[2,1,0]];   /* 2 done, 1 in progress, 0 not star
 function rOverview(){
   setTimeout(fitView,0);
   const rib=ribbon([
-    ['Marketing &amp; Pre-sales',[['Lead to site visit conversion',XP,'%'],['Visit to sale',XP,'%']]],
-    ['Sales &mdash; Residential',[['Unsold stock value',RS,''],['Absorption rate',X,'units / month']]],
-    ['Sales &mdash; Commercial',[['New / vacant area',X,'sq ft'],['Expiring in 6 months',X,'sq ft']]],
-    ['CRM',[['CSAT/NPS score','X/XX','score, 0 to 10'],['Collections',XP,'% of demand raised']]]]);
+    ['Marketing &amp; Pre-sales',[['Lead to site visit conversion',XP,'%'],
+                                 ['Visit to sale',XP,'%']]],
+    ['Sales &mdash; Residential',[['Unsold stock value',RS,'at valuation rate'],
+                                 ['Absorption rate',X,'units / month']]],
+    ['Sales &mdash; Commercial BTS',[['Area to sell',X,'sq ft'],
+                                    ['Demand pipeline',X,'sq ft']]],
+    ['Sales &mdash; Commercial BTL',[['New / vacant area',X,'sq ft'],
+                                    ['Expiring in 6 months',X,'sq ft']]],
+    ['CRM',[['NPS score',X,'score, 0 to 10'],
+            ['Collections',XP,'% of demand raised']]]]);
 
   /* YTD: build to sell in value, build to lease in area */
   const ytd=`<div class="ytd">`+
