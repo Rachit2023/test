@@ -462,6 +462,14 @@ tr.clickrow:hover .drillnm{border-bottom:1px solid var(--red);color:var(--red)}
 .mclose{font:inherit;font-size:15px;line-height:1;background:none;border:none;cursor:pointer;color:var(--g2)}
 .mdet table{border:none}
 tr.grp td{background:#FAFAFA}
+/* the whole group row toggles, matching the drill rows elsewhere */
+tr.gclick{cursor:pointer;user-select:none;-webkit-user-select:none}
+tr.gclick:hover td{background:#F2F2F2!important}
+.gchev{display:inline-block;width:14px;margin-right:5px;text-align:center;color:var(--g2);
+  font-weight:700;line-height:1;vertical-align:-1px}
+.gchev::before{content:"\203a";font-size:14.4px}
+tr.gclick[aria-expanded="true"] .gchev::before{content:"\2304";font-size:12.0px}
+tr.gclick:hover .gchev{color:var(--red)}
 .gtog{margin-right:5px;vertical-align:middle}
 tr.grow[hidden]{display:none}
 
@@ -909,8 +917,8 @@ function rMkt(){
   let ab=`<table><thead><tr><th>Avenue</th><th class="c">Leads</th><th class="c">Qualified</th>
       <th class="c">Cost / lead</th><th class="c">Cost / booking</th></tr></thead><tbody>`;
   ['Online','Offline'].forEach(g=>{
-    ab+=`<tr class="grp"><td><button class="rtog gtog" data-grp="${g}" aria-expanded="false"></button>
-        <span class="pn">${g} cost per lead</span></td>
+    ab+=`<tr class="grp gclick" data-grp="${g}" aria-expanded="false">
+        <td><span class="gchev"></span><span class="pn">${g} cost per lead</span></td>
       <td class="c"><b>${X}</b></td><td class="c"><b>${X}</b></td>
       <td class="c"><b>Rs ${X}</b></td><td class="c"><b>Rs ${X}</b></td></tr>`;
     AV[g].forEach(a=>{
@@ -921,7 +929,7 @@ function rMkt(){
   ab+=`</tbody><tfoot><tr><td><b>Total</b></td><td class="c"><b>${X}</b></td>
       <td class="c"><b>${X}</b></td><td class="c"><b>Rs ${X}</b></td>
       <td class="c"><b>Rs ${X}</b></td></tr></tfoot></table>`;
-  const av=card('Cost by avenue','click a channel for its avenues',ab);
+  const av=card('Cost by avenue','click a row for its avenues',ab);
 
   const ps=card('Pre-sales discipline <span class="tbd">To be populated later</span>','',
     `<div class="greyed">`+tbl(['','c','c'],['Measure','Value','Target'],
@@ -935,10 +943,14 @@ function rMkt(){
   document.querySelectorAll('[data-fm]').forEach(b=>b.addEventListener('click',()=>{
     FMODE=+b.dataset.fm; rMkt();
   }));
-  document.querySelectorAll('[data-grp]').forEach(b=>b.addEventListener('click',()=>{
-    const g=b.dataset.grp, open=b.getAttribute('aria-expanded')==='true';
-    b.setAttribute('aria-expanded',!open);
-    document.querySelectorAll('#v-mkt .g-'+g).forEach(r=>r.hidden=open);
+  let gHit=0, gKey='';
+  document.querySelectorAll('#v-mkt tr[data-grp]').forEach(r=>r.addEventListener('click',()=>{
+    const g=r.dataset.grp, now=Date.now();
+    if(g===gKey && now-gHit<350){ gHit=now; return; }   /* double-click = one toggle */
+    gHit=now; gKey=g;
+    const open=r.getAttribute('aria-expanded')==='true';
+    r.setAttribute('aria-expanded',!open);
+    document.querySelectorAll('#v-mkt .g-'+g).forEach(x=>x.hidden=open);
     fitView();}));
 }
 
