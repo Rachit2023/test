@@ -342,7 +342,7 @@ tr.remrow td{background:var(--g6)!important;font-size:12.0px;color:var(--g2);pad
 .mlink b{color:var(--ink);font-size:12.6px;border-bottom:1px dotted var(--g3)}
 .mlink:hover b{border-bottom-color:var(--red);color:var(--red)}
 .mlink[aria-pressed="true"] b{color:var(--red);border-bottom:1px solid var(--red)}
-.hplab4{display:flex;justify-content:space-between;margin-top:4px}
+
 .drillhd{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .crumb{font-size:12.0px;color:var(--g2)}
 .crumb b{color:var(--ink)}
@@ -426,23 +426,52 @@ tr.clickrow:hover .drillnm{border-bottom:1px solid var(--red);color:var(--red)}
 
 .bar.seg{display:flex;align-items:center;justify-content:center}
 .bar.seg i{font-style:normal;font-size:9.6px;font-weight:700;color:#fff}
+
+/* ───── labels anchored to their segment ───── */
+.hpmk{position:relative;height:16px}
+.hplabmap{position:relative;height:17px;margin-top:4px}
+.mlink.pin{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.mlink.pin.end{transform:translateX(-100%)}
+.hpmk .mlink.pin{top:1px}
+
+.pinlab{position:absolute;transform:translateX(-50%);white-space:nowrap;
+  font-size:12px;color:var(--g2)}
+.pinlab b{color:var(--ink)}
+.pinlab.end{transform:translateX(-100%)}
+.hpmk .pinlab{top:1px}
+
+.foot{font-size:11px;color:var(--g2);margin-top:5px}
+
+.mdet{border:1px solid var(--line);margin-top:6px}
+.mdethd{background:var(--g6);padding:5px 10px;font-size:12px;font-weight:700;
+  display:flex;justify-content:space-between;align-items:center}
+.mclose{font:inherit;font-size:15px;line-height:1;background:none;border:none;cursor:pointer;color:var(--g2)}
+.mdet table{border:none}
+tr.grp td{background:#FAFAFA}
+.gtog{margin-right:5px;vertical-align:middle}
+tr.grow[hidden]{display:none}
+
+/* ───── labels sitting under the segment they describe ───── */
+.segmap{position:relative;height:16px;margin-top:3px}
+.segmap .pinlab{font-size:10.8px}
+.posnum{display:none}
 </style></head>
 <body><div class="top"></div><div class="wrap">
   <div class="hdr"><h1>Sales, Marketing &amp; CRM</h1>
     <span class="as">Reporting month &middot; WIREFRAME</span></div>
   <div class="tabs" role="tablist" aria-label="Dashboard sections">
-    <button class="tab" role="tab" data-v="ov"  aria-selected="true">Overview</button>
+    <button class="tab" role="tab" data-v="act" aria-selected="true">Action items</button>
+    <button class="tab" role="tab" data-v="ov"  aria-selected="false">Overview</button>
     <button class="tab" role="tab" data-v="mkt" aria-selected="false">Marketing &amp; Pre-sales</button>
     <button class="tab" role="tab" data-v="sal" aria-selected="false">Sales</button>
     <button class="tab" role="tab" data-v="crm" aria-selected="false">CRM</button>
-    <button class="tab" role="tab" data-v="act" aria-selected="false">Action items</button>
     <span class="gfilt" id="fbar"></span>
   </div>
-  <div class="view" id="v-ov"  role="tabpanel"></div>
+  <div class="view" id="v-act" role="tabpanel"></div>
+  <div class="view" id="v-ov"  role="tabpanel" hidden></div>
   <div class="view" id="v-mkt" role="tabpanel" hidden></div>
   <div class="view" id="v-sal" role="tabpanel" hidden></div>
   <div class="view" id="v-crm" role="tabpanel" hidden></div>
-  <div class="view" id="v-act" role="tabpanel" hidden></div>
 </div>
 <script>
 /* ════ SMM wireframe — built from the live deck. Placeholders only. ════ */
@@ -588,20 +617,64 @@ function hprog(o){
        <i style="left:${t}%;width:${100-t}%;background:var(--g5)"${tip(o.n3+': '+X)}></i>`;
   const midLab = (mid!==undefined) ? `<span>${o.nMid} <b>${X}</b></span>`
                                    : `<span>${o.n2} <b>${X}</b></span>`;
-  if(o.keys){
-    const four=o.keys.map(([k,lab])=>
-      `<button class="mlink" data-metric="${k}" data-row="${o.label}">${lab} <b>${X}</b></button>`).join('');
-    const clickable=`<i class="f1" style="left:0;width:${f}%" data-metric="sold" data-row="${o.label}"
-         ${tip('Sold: '+X+' \u2014 click for the breakdown')}></i>
-       ${sf>0?`<i class="f2" style="left:${f}%;width:${sf}%" data-metric="shortfall" data-row="${o.label}"
-         ${tip('Shortfall: '+X+' \u2014 click for the breakdown')}></i>`:''}
-       <i style="left:${t}%;width:${100-t}%;background:var(--g5)" data-metric="total" data-row="${o.label}"
-         ${tip('Not in this period\u2019s target: '+X+' \u2014 click for the breakdown')}></i>`;
+  if(o.mapKeys3){
+    const [L1,L2,L3,L4]=o.mapKeys3, mid=o.mid;
     return `<div class="hpwrap">
       <div class="hphd"><b>${o.label}</b><span>${o.unit||''}</span></div>
+      <div class="hpmk"><span class="pinlab" style="left:${t}%">${L3} <b>${X}</b></span></div>
+      <div class="hp">
+        <i class="f1" style="left:0;width:${f}%"${tip(L1+': '+X)}></i>
+        <i class="f3" style="left:${f}%;width:${mid-f}%"${tip(L2+': '+X)}></i>
+        <i style="left:${mid}%;width:${100-mid}%;background:var(--g5)"${tip('Unsold, no prospect: '+X)}></i>
+        <span class="mk" style="left:${t}%"></span></div>
+      <div class="hplabmap">
+        <span class="pinlab" style="left:${f/2}%">${L1} <b>${X}</b></span>
+        <span class="pinlab" style="left:${f+(mid-f)/2}%">${L2} <b>${X}</b></span>
+        <span class="pinlab end" style="left:100%">${L4} <b>${X}</b></span></div></div>`;
+  }
+  if(o.mapKeys){
+    const [L1,L2,L3,L4]=o.mapKeys;
+    const soldC=f/2; let shortC=f+sf/2;
+    if(sf>0 && shortC-soldC<14) shortC=soldC+14;
+    return `<div class="hpwrap">
+      <div class="hphd"><b>${o.label}</b><span>${o.unit||''}</span></div>
+      <div class="hpmk"><span class="pinlab" style="left:${t}%">${L3} <b>${X}</b></span></div>
+      <div class="hp">
+        <i class="f1" style="left:0;width:${f}%"${tip(L1+': '+X)}></i>
+        ${sf>0?`<i class="f2" style="left:${f}%;width:${sf}%"${tip(L2+': '+X)}></i>`:''}
+        <i style="left:${t}%;width:${100-t}%;background:var(--g5)"${tip('Not yet demanded: '+X)}></i>
+        <span class="mk" style="left:${t}%"></span></div>
+      <div class="hplabmap">
+        <span class="pinlab" style="left:${soldC}%">${L1} <b>${X}</b></span>
+        ${sf>0?`<span class="pinlab" style="left:${shortC}%">${L2} <b>${X}</b></span>`:''}
+        <span class="pinlab end" style="left:100%">${L4} <b>${X}</b></span></div></div>`;
+  }
+  if(o.keys){
+    /* each label sits under the segment it actually describes */
+    const soldC   = f/2;                                  /* centre of the dark fill   */
+    let  shortC   = f + sf/2;                             /* centre of the red band    */
+    if(sf>0 && shortC-soldC < 14) shortC = soldC + 14;    /* keep them apart if narrow */
+    const clickable=
+      `<i class="f1" style="left:0;width:${f}%" data-metric="sold" data-row="${o.label}"
+         ${tip('Sold: '+X)}></i>
+       ${sf>0?`<i class="f2" style="left:${f}%;width:${sf}%" data-metric="shortfall" data-row="${o.label}"
+         ${tip('Shortfall: '+X)}></i>`:''}
+       <i style="left:${t}%;width:${100-t}%;background:var(--g5)" data-metric="total" data-row="${o.label}"
+         ${tip('Not in this period\u2019s target: '+X)}></i>`;
+    return `<div class="hpwrap">
+      <div class="hphd"><b>${o.label}</b><span>${o.unit||''}</span></div>
+      <div class="hpmk">
+        <button class="mlink pin" data-metric="tosell" data-row="${o.label}"
+          style="left:${t}%">To sell <b>${X}</b></button></div>
       <div class="hp hpclick">${clickable}
         <span class="mk" style="left:${t}%"></span></div>
-      <div class="hplab4">${four}</div></div>`;
+      <div class="hplabmap">
+        <button class="mlink pin" data-metric="sold" data-row="${o.label}"
+          style="left:${soldC}%">Sold <b>${X}</b></button>
+        ${sf>0?`<button class="mlink pin" data-metric="shortfall" data-row="${o.label}"
+          style="left:${shortC}%">Shortfall <b>${X}</b></button>`:''}
+        <button class="mlink pin end" data-metric="total" data-row="${o.label}"
+          style="left:100%">Total units <b>${X}</b></button></div></div>`;
   }
   return `<div class="hpwrap">
     <div class="hphd"><b>${o.label}</b><span>${o.unit||''}</span></div>
@@ -631,11 +704,15 @@ function srcMix(){
   const SEG=[['Direct',52,34,'var(--g2)','#fff'],
              ['Referral',36,46,'var(--g3)','#fff'],
              ['Channel partner',12,20,'var(--g5)','var(--g1)']];
-  const row=(lab,idx)=>`<div class="smx">
+  const row=(lab,idx)=>{
+    let acc=0; const pins=SEG.map(g=>{const c=acc+g[idx]/2; acc+=g[idx];
+      return `<span class="pinlab" style="left:${c}%">${g[0]} <b>${X}</b></span>`;}).join('');
+    return `<div class="smx">
       <span class="smxl">${lab}</span>
-      <div class="smxb">`+SEG.map(g=>
-        `<span style="width:${g[idx]}%;background:${g[3]};color:${g[4]}"${tip(g[0]+' '+(idx===1?'leads':'bookings')+': '+X+' ('+XP+')')}>${X}</span>`).join('')+
-      `</div><span class="smxt">total ${X}</span></div>`;
+      <div><div class="smxb">`+SEG.map(g=>
+        `<span style="width:${g[idx]}%;background:${g[3]};color:${g[4]}"${tip(g[0]+': '+X+' ('+XP+')')}></span>`).join('')+
+      `</div><div class="segmap">${pins}</div></div>
+      <span class="smxt">total ${X}</span></div>`;};
   return card('Lead source mix',
     '',
     row('LEADS',1)+row('BOOKINGS',2)+
@@ -655,7 +732,7 @@ function rOverview(){
   const rib=ribbon([
     ['Marketing &amp; Pre-sales',[['Lead to site visit conversion',XP,'%'],['Visit to sale',XP,'%']]],
     ['Sales &mdash; Residential',[['Unsold stock value',RS,''],['Absorption rate',X,'units / month']]],
-    ['Sales &mdash; Commercial',[['Vacant area',X,'sq ft'],['Expiring in 12 months',X,'sq ft']]],
+    ['Sales &mdash; Commercial',[['New / vacant area',X,'sq ft'],['Expiring in 6 months',X,'sq ft']]],
     ['CRM',[['CSAT/NPS score','X/XX','score, 0 to 10'],['Collections',XP,'% of demand raised']]]]);
 
   /* YTD: build to sell in value, build to lease in area */
@@ -664,8 +741,10 @@ function rOverview(){
       <div><span class="ytdh">YTD sales target vs achieved &mdash; ${t}</span>
         <div class="ytdr"><b>${v}</b><span>achieved</span>
           <b>${v}</b><span>target</span><b>${XP}</b><span>of target</span></div>
-        <div class="ytdbar"${tip(t+' \u2014 achieved '+v+' of '+v+' target')}>
-          <i style="width:${f*100}%"></i><u style="left:100%"></u></div></div>`).join('')+
+        <div class="ytdbar"><i style="width:${f*100}%"${tip('achieved '+v)}></i><u style="left:100%"></u></div>
+        <div class="segmap">
+          <span class="pinlab" style="left:${f*50}%">achieved</span>
+          <span class="pinlab" style="left:${f*100+(100-f*100)/2}%">gap to target</span></div></div>`).join('')+
     `</div>`;
 
   /* scheduling: stage ticks, then position and handover as inline bars */
@@ -684,11 +763,16 @@ function rOverview(){
         <div><span class="chip">${p.city}</span><span class="chip">${p.biz}</span></div>
         ${remBody()}</td>
       <td class="c">${ticks}</td>
-      <td><div class="posbar"${tip('Sold '+soldPct+'% of total')}><i style="width:${soldPct}%"></i></div>
-        <div class="posnum"><span>total <b>${X}</b></span><span>sold <b>${X}</b></span>
-          <span>remaining <b>${X}</b></span><span>sold <b>${XP}</b></span></div></td>
-      <td><div class="posbar"${tip('Handed over '+hoPct+'% of sold')}><i style="width:${hoPct}%"></i></div>
-        <div class="posnum"><span>handed over <b>${X}</b></span><span>left <b>${X}</b></span></div></td>
+      <td><div class="posbar">
+          <i style="width:${soldPct}%"${tip('Sold: '+X)}></i></div>
+        <div class="segmap">
+          <span class="pinlab" style="left:${soldPct/2}%">sold <b>${X}</b></span>
+          <span class="pinlab" style="left:${soldPct+(100-soldPct)/2}%">remaining <b>${X}</b></span></div></td>
+      <td><div class="posbar">
+          <i style="width:${hoPct}%"${tip('Handed over: '+X)}></i></div>
+        <div class="segmap">
+          ${hoPct>12?`<span class="pinlab" style="left:${hoPct/2}%">handed over <b>${X}</b></span>`:''}
+          <span class="pinlab" style="left:${hoPct+(100-hoPct)/2}%">left <b>${X}</b></span></div></td>
       <td class="c exp" id="ex-${p.id}">+</td></tr>
       <tr id="dr-${p.id}" hidden><td colspan="5" style="padding:0"></td></tr>`;
   }).join('');
@@ -800,15 +884,24 @@ function rMkt(){
     tbl(['','c','c','c','c'],['Measure','Mar','Apr','May','Jun'],
       [['Lead to site visit conversion',XP,XP,XP,XP]]));
 
-  const av=card('Cost by avenue','',
-    tbl(['','c','c','c','c','c'],
-      ['Avenue','Channel','Leads','Qualified','Cost / lead','Cost / booking'],
-      [['Meta/Instagram','Online',X,X,'Rs '+X,'Rs '+X],
-       ['Google search','Online',X,X,'Rs '+X,'Rs '+X],
-       ['Portals','Online',X,X,'Rs '+X,'Rs '+X],
-       ['Channel partner','Offline',X,X,'Rs '+X,'Rs '+X],
-       ['Referral','Offline',X,X,'Rs '+X,'Rs '+X],
-       ['<b>Total</b>','',X,X,'Rs '+X,'Rs '+X]]));
+  const AV={Online:['Meta / Instagram','Google search','Portals'],
+            Offline:['Channel partner','Referral','Walk-in']};
+  let ab=`<table><thead><tr><th>Avenue</th><th class="c">Leads</th><th class="c">Qualified</th>
+      <th class="c">Cost / lead</th><th class="c">Cost / booking</th></tr></thead><tbody>`;
+  ['Online','Offline'].forEach(g=>{
+    ab+=`<tr class="grp"><td><button class="rtog gtog" data-grp="${g}" aria-expanded="false"></button>
+        <span class="pn">${g} cost per lead</span></td>
+      <td class="c"><b>${X}</b></td><td class="c"><b>${X}</b></td>
+      <td class="c"><b>Rs ${X}</b></td><td class="c"><b>Rs ${X}</b></td></tr>`;
+    AV[g].forEach(a=>{
+      ab+=`<tr class="grow g-${g}" hidden><td><span class="sub">${a}</span></td>
+        <td class="c">${X}</td><td class="c">${X}</td>
+        <td class="c">Rs ${X}</td><td class="c">Rs ${X}</td></tr>`;});
+  });
+  ab+=`</tbody><tfoot><tr><td><b>Total</b></td><td class="c"><b>${X}</b></td>
+      <td class="c"><b>${X}</b></td><td class="c"><b>Rs ${X}</b></td>
+      <td class="c"><b>Rs ${X}</b></td></tr></tfoot></table>`;
+  const av=card('Cost by avenue','click a channel for its avenues',ab);
 
   const ps=card('Pre-sales discipline <span class="tbd">To be populated later</span>','',
     `<div class="greyed">`+tbl(['','c','c'],['Measure','Value','Target'],
@@ -822,6 +915,11 @@ function rMkt(){
   document.querySelectorAll('[data-fm]').forEach(b=>b.addEventListener('click',()=>{
     FMODE=+b.dataset.fm; rMkt();
   }));
+  document.querySelectorAll('[data-grp]').forEach(b=>b.addEventListener('click',()=>{
+    const g=b.dataset.grp, open=b.getAttribute('aria-expanded')==='true';
+    b.setAttribute('aria-expanded',!open);
+    document.querySelectorAll('#v-mkt .g-'+g).forEach(r=>r.hidden=open);
+    fitView();}));
 }
 
 /* ══════════ 3 · SALES ══════════ */
@@ -892,22 +990,22 @@ function rResi(){
     tbl(['','c','c','c','c','c','c'],['','Jan','Feb','Mar','Apr','May','Jun'],
       [['Inventory in target',X,X,X,X,X,X],['Months of inventory',X,X,X,X,X,X]]));
 
-  const price=card('Planned vs achieved price, by project','Rs per sq.ft',
+  const price=card('Launch vs achieved price, by project','Rs per sq.ft',
     `<div class="bars" style="height:112px">`+PROJNAMES.map((p,i)=>{
       const pl=[62,58,52][i], ac=[66,46,56][i];
       return `<div class="bcol"><div class="bwr">
           <div style="width:100%;display:flex;gap:6px;align-items:flex-end;justify-content:center">
             <div style="width:40%;position:relative">
               <span class="bvv" style="bottom:${pl+3}px;top:auto;left:0;right:0">${X}</span>
-              <div class="bar" style="height:${pl}px;background:var(--g5);border:1px solid var(--g4)"${tip(p+' planned: Rs '+X)}></div></div>
+              <div class="bar" style="height:${pl}px;background:var(--g5);border:1px solid var(--g4)"${tip(p+' launch price: Rs '+X)}></div></div>
             <div style="width:40%;position:relative">
               <span class="bvv" style="bottom:${ac+3}px;top:auto;left:0;right:0">${X}</span>
               <div class="bar ${ac<pl?'hi':''}" style="height:${ac}px"${tip(p+' achieved: Rs '+X)}></div></div>
           </div></div><div class="blb">${p}</div></div>`;}).join('')+`</div>`+
-    `<div class="lg"><span><i class="sw" style="background:var(--g5);border:1px solid var(--g4)"></i>planned</span>
+    `<div class="lg"><span><i class="sw" style="background:var(--g5);border:1px solid var(--g4)"></i>launch price</span>
       <span><i class="sw" style="background:var(--g3)"></i>achieved</span></div>`+
     tbl(['','c','c','c','c'],['Measure','Project 1','Project 2','Project 3','Portfolio'],
-      [['Planned price, Rs/sq.ft',X,X,X,X],['Achieved price, Rs/sq.ft',X,X,X,X]]));
+      [['Launch price, Rs/sq.ft',X,X,X,X],['Achieved price, Rs/sq.ft',X,X,X,X]]));
 
   const PARTNERS=['Top partner 1','Top partner 2','Top partner 3'];
   let bt=tbl(['','c','c','c','c','c'],
@@ -992,20 +1090,21 @@ function rComm(){
   setTimeout(fitView,0);
   const rib=ribbon([
     ['Build to lease',[['Area to lease',X,'sq ft'],['Demand pipeline',X,'sq ft']]],
-    ['Build to sell',[['Area to sell',X,'sq ft'],['Demand pipeline',X,'sq ft']]]]);
+    ['Build to sell',[['Area to sell',X,'sq ft'],['Demand pipeline',X,'sq ft']]]])+
+    `<div class="foot">Pipeline includes hot and warm leads only</div>`;
 
-  const a1=remLead('Asset 1',7), a2=remLead('Asset 2',7);
-  let lt=tbl(['','c','c','c','c','c','c'],
-      ['Asset','% let','To lease','&#8377;/sqft','At risk','Prospects','Cover'],
-      [[a1.lead,XP,X,X,X,'0','0.00x'],['@@A1@@','','','','','',''],
-       [a2.lead,XP,X,X,X,X,'X.XXx'],['@@A2@@','','','','','',''],
-       ['<span class="pn">Total</span>',XP,X,'',X,X,'X.XXx']]);
-  lt=lt.replace(/<tr><td class="">@@A1@@<\/td>(<td class="c"><\/td>){6}<\/tr>/,a1.row)
-       .replace(/<tr><td class="">@@A2@@<\/td>(<td class="c"><\/td>){6}<\/tr>/,a2.row);
+  const a1=remLead('Asset 1',6), a2=remLead('Asset 2',6);
+  let lt=tbl(['','c','c','c','c','c'],
+      ['Asset','% let','To lease','&#8377;/sqft','Prospects','Cover'],
+      [[a1.lead,XP,X,X,'0','0.00x'],['@@A1@@','','','','',''],
+       [a2.lead,XP,X,X,X,'X.XXx'],['@@A2@@','','','','',''],
+       ['<span class="pn">Total</span>',XP,X,'',X,'X.XXx']]);
+  lt=lt.replace(/<tr><td class="">@@A1@@<\/td>(<td class="c"><\/td>){5}<\/tr>/,a1.row)
+       .replace(/<tr><td class="">@@A2@@<\/td>(<td class="c"><\/td>){5}<\/tr>/,a2.row);
   const obL=card('Build to lease','',lt+
     tbl(['','c'],['Lease tenure','Value'],
       [['WALE (weighted average lease expiry)','XX yrs'],
-       ['Rent expiring in 12 months','XX INR Cr']]));
+       ['Lease expiry in 6 months','XX INR Cr']]));
 
   const s1=remLead('Asset 1',6);
   let st=tbl(['','c','c','c','c','c'],
@@ -1015,6 +1114,7 @@ function rComm(){
   st=st.replace(/<tr><td class="">@@S1@@<\/td>(<td class="c"><\/td>){5}<\/tr>/,s1.row);
   const obS=card('Build to sell','',
     hprog({label:'Area position',unit:'sq ft',fill:46,mid:68,target:62,
+      mapKeys3:['Sold','Prospects','Target','Total'],
       n1:'Sold',nMid:'Prospects',n3:'Unsold, no prospect',n4:'Target',n5:'Total'})+
     `<div class="hpleg">
        <span><i class="sw" style="background:var(--g2)"></i>sold</span>
@@ -1040,7 +1140,7 @@ function rComm(){
 }
 
 /* ══════════ 4 · CRM ══════════ */
-let CTOG=0, CMONTH='Jul';
+let CTOG=0, CMONTH=null;
 function rCRM(){
   setTimeout(fitView,0);
   const rib=ribbon([
@@ -1051,7 +1151,8 @@ function rCRM(){
     ['Service',[['NPS at handover',X,'score, 0 to 10 &middot; XX% responded']]]]);
 
   const collBar=(fill,dem)=>hprog({label:'Against sales value',unit:'Rs Cr',
-      fill:fill,target:dem,n1:'Collected',n2:'Outstanding',n3:'Not yet demanded',
+      fill:fill,target:dem,mapKeys:['Collected','Outstanding','Demanded','Sales value'],
+      n1:'Collected',n2:'Outstanding',n3:'Not yet demanded',
       n4:'Demanded',n5:'Sales value'})+
     `<div class="hpleg">
        <span><i class="sw" style="background:var(--g2)"></i>collected</span>
@@ -1068,9 +1169,12 @@ function rCRM(){
       <span><i class="sw" style="background:var(--red)"></i>outstanding</span></div>`+
     PJ.map(([p,biz,dem,coll])=>`<div class="hrow">
         <span class="hnm">${p}<span class="hsub">${biz} &middot; ${XP} collected</span></span>
-        <div class="htrack"${tip(p+' \u2014 demanded Rs '+X+' Cr')}>
-          <i class="c1" style="width:${coll}%"${tip('collected: Rs '+X+' Cr')}></i>
-          <i class="c2" style="left:${coll}%;width:${dem-coll}%"${tip('outstanding: Rs '+X+' Cr')}></i></div>
+        <div><div class="htrack">
+            <i class="c1" style="width:${coll}%"${tip('collected: Rs '+X+' Cr')}></i>
+            <i class="c2" style="left:${coll}%;width:${dem-coll}%"${tip('outstanding: Rs '+X+' Cr')}></i></div>
+          <div class="segmap">
+            <span class="pinlab" style="left:${coll/2}%">collected <b>${X}</b></span>
+            <span class="pinlab" style="left:${coll+(dem-coll)/2}%">outstanding <b>${X}</b></span></div></div>
         <span class="hval red">out ${X}</span></div>`).join(''),
     btns(['Residential','Comm BTS','Both'],CTOG,'ct'));
 
@@ -1081,9 +1185,12 @@ function rCRM(){
       <span><i class="sw" style="background:var(--red)"></i>pending registration</span></div>`+
     RG.map(([p,f])=>`<div class="hrow">
         <span class="hnm">${p}<span class="hsub">sold ${X} units</span></span>
-        <div class="htrack"${tip(p+' \u2014 sold '+X+' units')}>
-          <i class="c1" style="width:${f}%;background:var(--g2)"${tip('registered: '+X)}></i>
-          <i class="c2" style="left:${f}%;width:${100-f}%"${tip('pending: '+X)}></i></div>
+        <div><div class="htrack">
+            <i class="c1" style="width:${f}%;background:var(--g2)"${tip('registered: '+X)}></i>
+            <i class="c2" style="left:${f}%;width:${100-f}%"${tip('pending: '+X)}></i></div>
+          <div class="segmap">
+            <span class="pinlab" style="left:${f/2}%">registered <b>${X}</b></span>
+            <span class="pinlab" style="left:${f+(100-f)/2}%">pending <b>${X}</b></span></div></div>
         <span class="hval">${XP}</span></div>`).join(''));
 
   const MONTHS=[['Apr',1],['May',1],['Jun',1],['Jul',1],['Aug',1],['Sep',1],
@@ -1098,15 +1205,18 @@ function rCRM(){
          <span class="mv">${has?X:'0'}</span><span class="mm">${m}</span></button>`).join('')+
     `</div>`;
   const detail=()=>{
+    if(!CMONTH) return '';
     const rows=MDATA[CMONTH];
-    if(!rows) return `<div class="mnone">${CMONTH?CMONTH+' has no scheduled collection':'Pick a month to see its collections'}</div>`;
-    return tbl(['','c','','c','c'],['Project or asset','Rs Cr','Milestone','Blocker','Conf.'],
-      rows.map(r=>[`<span class="pn">${r[0]}</span>`,X,r[1],r[2],r[3]]),
-      ['<b>Total</b>',X,'','','']);
+    const inner=rows
+      ? tbl(['','c','','c','c'],['Project or asset','Rs Cr','Milestone','Blocker','Conf.'],
+          rows.map(r=>[`<span class="pn">${r[0]}</span>`,X,r[1],r[2],r[3]]),
+          ['<b>Total</b>',X,'','',''])
+      : `<div class="mnone">${CMONTH} has no scheduled collection</div>`;
+    return `<div class="mdet"><div class="mdethd">${CMONTH}
+        <button class="mclose" data-mclose>&times;</button></div>${inner}</div>`;
   };
   const sched=card('Collection schedule','Rs Cr by month &middot; click a month for its collections',
-    half(MONTHS.slice(0,6))+half(MONTHS.slice(6))+
-    `<div class="mdet">${detail()}</div>`);
+    half(MONTHS.slice(0,6))+half(MONTHS.slice(6))+detail());
 
   const D=[[62,22,16],[40,26,34],[52,24,24],[54,23,23]];
   const NM=['Project A','Project B','Project C','Portfolio'];
@@ -1127,7 +1237,8 @@ function rCRM(){
     `<div class="row h2">${dc}${reg}</div>`+
     `<div class="row h2">${sched}${nps}</div>`;
   document.querySelectorAll('[data-month]').forEach(b=>b.addEventListener('click',()=>{
-    CMONTH=b.dataset.month; rCRM();}));
+    CMONTH=(CMONTH===b.dataset.month)?null:b.dataset.month; rCRM();}));
+  const mc=$('[data-mclose]'); if(mc) mc.addEventListener('click',e=>{e.stopPropagation();CMONTH=null;rCRM();});
   document.querySelectorAll('[data-ct]').forEach(b=>b.addEventListener('click',()=>{CTOG=+b.dataset.ct;rCRM();}));
 }
 
@@ -1177,5 +1288,5 @@ window.addEventListener('resize',()=>requestAnimationFrame(fitView));
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>show(t.dataset.v)));
 mountFilters();
 mountTip();
-show('ov');
+show('act');
 </script></body></html>
